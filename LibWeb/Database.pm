@@ -1,6 +1,5 @@
 #==============================================================================
-# LibWeb::Database -- a component of LibWeb--a Perl library/toolkit for
-#                     building World Wide Web applications.
+# LibWeb::Database -- A generic database driver for libweb applications.
 
 package LibWeb::Database;
 
@@ -21,23 +20,29 @@ package LibWeb::Database;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release.
+# $Id: Database.pm,v 1.5 2000/07/18 06:33:30 ckyc Exp $
 
+#-############################
 # Use standard library.
 use strict;
 use vars qw(@ISA $VERSION);
-use DBI;
+use Carp;
+require DBI;
 
+#-############################
 # Use custom library.
 require LibWeb::Core;
 
+#-############################
+# Version.
+$VERSION = '0.02';
+
+#-############################
 # Inheritance.
 @ISA = qw(LibWeb::Core);
 
-$VERSION = '0.01';
-
-#=======================================================================
-# Constructor.
+#-############################
+# Methods.
 sub new {
     #
     # Params: $class [, $rc_file]
@@ -77,10 +82,11 @@ sub _init {
     $self->fatal(
 		 -msg => 'Our database is under construction.',
 		 -alertMsg =>
-		 'LibWeb::Database::_init(): can\'t connect to database.',
+		 "LibWeb::Database::_init(): Couldn't connect to database.\n".
+		 Carp::longmess("$@ "),
 		 -HelpMsg => $self->{HHTML}->database_error()
 		)
-      if $@;
+      if ( $@ && $self->{IS_DB_ENABLED} );
 }
 
 sub DESTROY {
@@ -100,17 +106,19 @@ sub do {
     # Post:
     # -Return the number of rows affected by the SQL statement, -sql.
     #
-    my ($self, $sql);
+    my ($self, $sql, $ret);
     $self = shift;
     ($sql) = $self->rearrange( ['SQL'], @_ );
 
-    return $self->{__PACKAGE__. '.dbHandle'}->do($sql) or
-      $self->fatal(
-		   -msg => 'Our database is under construction.',
-		   -alertMsg => "Database error: $sql failed.\n " .
-		   $self->{__PACKAGE__. '.dbHandle'}->errstr(),
-		   -HelpMsg => $self->{HHTML}->database_error()
-		  );
+    eval { $ret = $self->{__PACKAGE__. '.dbHandle'}->do($sql); };
+    $self->fatal(
+		 -msg => 'Our database is under construction.',
+		 -alertMsg =>
+		 "LibWeb::Database::do(): $sql failed.\n" . Carp::longmess("$@ ") .
+		 $self->{__PACKAGE__. '.dbHandle'}->errstr(),
+		 -HelpMsg => $self->{HHTML}->database_error()
+		) if $@;
+    return $ret;
 }
 
 sub query {
@@ -118,7 +126,7 @@ sub query {
     # Params: ( -sql=>, -bind_cols=> [, -want_hash=>].
     #
     # Pre:
-    # -sql is the sql statment to perform the query.
+    # -sql is the sql statement to perform the query.
     # -bind_cols is an ARRAY ref. to SCALAR refs. to fields to be bound in
     #  the table specified in -sql.
     # -want_hash indicates whether the returning function(a ref.) is a ref. to
@@ -143,8 +151,9 @@ sub query {
     };
     $self->fatal(
 		 -msg => 'Our database is under construction.',
-		 -alertMsg => "Database error: $sql cannot be prepared.\n  " .
-		              $self->{__PACKAGE__. '.dbHandle'}-> errstr(),
+		 -alertMsg =>
+		 "LibWeb::Database::query(): $sql couldn't be prepared.\n  " .
+		 Carp::longmess("$@ ") . $self->{__PACKAGE__. '.dbHandle'}->errstr(),
 		 -HelpMsg => $self->{HHTML}->database_error()
 		)
       if $@;
@@ -153,8 +162,9 @@ sub query {
     eval { ($self->{__PACKAGE__. '.stHandle'}) -> execute };
     $self->fatal(
 		 -msg => 'Our database is under construction.',
-		 -alertMsg => "Database error: $sql execution failed.\n  " .
-		              $self->{__PACKAGE__. '.dbHandle'}->errstr(),
+		 -alertMsg =>
+		 "LibWeb::Database::query(): $sql execution failed.\n  " .
+		 Carp::longmess("$@ ") . $self->{__PACKAGE__. '.dbHandle'}->errstr(),
 		 -HelpMsg => $self->{HHTML}->database_error()
 		)
       if $@;
@@ -164,8 +174,8 @@ sub query {
     $self->fatal(
 		 -msg => 'Our database is under construction.',
 		 -alertMsg =>
-		 "Database error: columns binding for $sql failed.\n  " .
-		 $self->{__PACKAGE__. '.dbHandle'}->errstr(),
+		 "LibWeb::Database::query(): columns binding for $sql failed.\n  " .
+		 Carp::longmess("$@ ") . $self->{__PACKAGE__. '.dbHandle'}->errstr(),
 		 -HelpMsg => $self->{HHTML}->database_error()
 		)
       if $@;
@@ -185,8 +195,8 @@ sub finish {
     } if defined($self->{__PACKAGE__.'.stHandle'});
     $self->fatal(-msg => 'Our database is under construction.',
 		 -alertMsg =>
-		 "Database error: SQL statement failed to finish properly.\n  " .
-		 $self->{__PACKAGE__. '.dbHandle'}->errstr(),
+		 "LibWeb::Database::finish(): SQL statement failed to finish properly.\n  " .
+		 Carp::longmess("$@ ") . $self->{__PACKAGE__. '.dbHandle'}->errstr(),
 		 -HelpMsg => $self->{HHTML}->database_error()
 		)
       if $@;
@@ -201,8 +211,8 @@ sub disconnect {
     } if defined($self->{__PACKAGE__.'.dbHandle'});
     $self->fatal(-msg => 'Our database is under construction.',
 		 -alertMsg =>
-		 "Database error: database disconnection failed.\n  " .
-		 $self->{__PACKAGE__. '.dbHandle'}->errstr(),
+		 "LibWeb::Database::disconnect(): Database disconnection failed.\n  " .
+		 Carp::longmess("$@ ") . $self->{__PACKAGE__. '.dbHandle'}->errstr(),
 		 -HelpMsg => $self->{HHTML}->database_error()
 		)
       if $@;
@@ -221,11 +231,9 @@ __DATA__
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::Database - A GENERIC DATABASE DRIVER FOR LIBWEB APPLICATIONS
+LibWeb::Database - A generic database driver for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -261,10 +269,10 @@ LibWeb::Core
   my $db = new LibWeb::Database();
 
   my ($sql, $user, $host, $fetch, $result);
-  $sql = "select USER_TABLE_USER_NAME, USER_TABLE_USER_HOST ".
+  $sql = "select USER_NAME, USER_HOST ".
          "from USER_TABLE ".
-         "where USER_TABLE_LOGIN_STATUS = ".
-         "LOGGED_IN";
+         "where USER_LOGIN_STATUS = ".
+         "LOGIN_INDICATOR";
 
   $fetch = $db->query(
                        -sql => $sql,
@@ -272,13 +280,13 @@ LibWeb::Core
                      );
 
   while ( &$fetch ) {
-      $result .= "$user $host\n";
+      $result .= "$user $host <BR>\n";
   }
 
   $db->done();
 
   print "Content-Type: text/html\n\n";
-  print "The following users have logged in: $result";
+  print "<P> The following users have logged in: $result";
 
 =head1 ABSTRACT
 
@@ -289,13 +297,11 @@ applications.
 The current version of LibWeb::Database is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
-Several LibWeb applications (LEAPs) have be written, released and
-are available at
+Several LibWeb applications (LEAPs) have be written, released and are
+available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 TYPOGRAPHICAL CONVENTIONS AND TERMINOLOGY
 
@@ -317,7 +323,7 @@ Pre:
 
 =item *
 
--sql is a valid sql statement.
+C<-sql> is a valid sql statement.
 
 =back
 
@@ -327,7 +333,7 @@ Post:
 
 =item *
 
-Return the number of rows affected by the SQL statement, -sql.
+Return the number of rows affected by the SQL statement, C<-sql>.
 
 =back
 
@@ -343,17 +349,17 @@ Pre:
 
 =item *
 
--sql is the sql statement to perform the query,
+C<-sql> is the sql statement to perform the query,
 
 =item *
 
--bind_cols is an ARRAY reference to SCALAR references to fields to be
-bound in the table specified in -sql,
+C<-bind_cols> is an ARRAY reference to SCALAR references to fields to
+be bound in the table specified in C<-sql>,
 
 =item *
 
--want_hash indicates whether the returning function (a reference) is a
-reference to DBI's fetchrow_hashref() or fetchrow_arrayref().
+C<-want_hash> indicates whether the returning function (a reference)
+is a reference to DBI's fetchrow_hashref() or fetchrow_arrayref().
 
 =back
 
@@ -363,9 +369,10 @@ Post:
 
 =item *
 
-Returns a reference to a fetching function based on -sql.  A reference
-to DBI's fetchrow_arrayref() is returned if -want_hash is not defined;
-otherwise a reference to DBI's fetchrow_hashref() is returned.
+Returns a reference to a fetching function based on C<-sql>.  A
+reference to DBI's fetchrow_arrayref() is returned if C<-want_hash> is
+not defined; otherwise a reference to DBI's fetchrow_hashref() is
+returned.
 
 =back
 
@@ -379,7 +386,8 @@ Disconnect the current database session.
 
 B<done()>
 
-Finish a statement execution and disconnect the current database session.
+Finish a statement execution and disconnect the current database
+session.
 
 =head1 AUTHORS
 

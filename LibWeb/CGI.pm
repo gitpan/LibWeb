@@ -1,6 +1,5 @@
 #==============================================================================
-# LibWeb::CGI -- a component of LibWeb--a Perl library/toolkit for building
-#                World Wide Web applications.
+# LibWeb::CGI -- Extra cgi supports for libweb applications.
 
 package LibWeb::CGI;
 
@@ -21,20 +20,23 @@ package LibWeb::CGI;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release.
+# $Id: CGI.pm,v 1.4 2000/07/18 06:33:30 ckyc Exp $
 
+#-#############################
 # Use standard library.
 use strict;
-use vars qw(@ISA $VERSION $AutoloadClass);#@EXPORT @EXPORT_OK %EXPORT_TAGS
+use vars qw(@ISA $VERSION $AutoloadClass);
 
+#-#############################
 # Use custom library.
 require LibWeb::Class;
 require LibWeb::Core;
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
+#-#############################
 # Inheritance.
-# Require CGI.pm version 2.66.
+# Require CGI.pm version > 2.66.
 require CGI;
 @ISA = qw( LibWeb::Class CGI );
 # This variable tells CGI what type of default object to create when
@@ -48,8 +50,8 @@ $AutoloadClass = 'CGI';
 $CGI::POST_MAX = 1024 * 100; # Default: Max 100K posts.
 $CGI::DISABLE_UPLOADS = 1;   # Default: No uploads.
 
-#===============================================================================
-# Constructor
+#-#############################
+# Methods.
 sub new {
     #
     # Params: [ -post_max=>, -disable_uploads=>, -auto_escape=> ]
@@ -123,7 +125,8 @@ sub header {
     if (@_) { return $self->SUPER::header(@_); }
     else { 
 	my $crlf = $LibWeb::Core::RC{CRLF} || "\n\n";
-	return "Content-Type: text/html$crlf$crlf"; }
+	return "Content-Type: text/html$crlf$crlf";
+    }
 }
 
 sub is_param_not_null {
@@ -136,7 +139,7 @@ sub parameter {
     # Sample usage: $this->parameter(cgi_parameter).
     #
     # Pre:
-    # 1. cgi_paramter is the parameter passed by either `GET' or `POST'.
+    # 1. cgi_parameter is the parameter passed by either `GET' or `POST'.
     #
     # Post:
     # 1. If cgi_parameter is a mandatory form value (the ones without `.' as prefix
@@ -154,10 +157,12 @@ sub parameter {
     # Where is CGI::cgi_error()??  It's supported pre CGI3, but seems to be
     # disappeared in new release of CGI.pm 3.01 alpha (24/04/2000).
     # Need to apply patch here if CGI version is < 2.47 or >= 3.01 alpha.
-    $self->fatal( -msg => 'Invalid post.  Post too large.',
-		  -alertMsg => "413 POST too large for CGI param: $key",
-		  -helpMsg => $self->{HHTML}->post_too_large() )
-      if ( !$value && $self->cgi_error() );
+    eval {
+	$self->fatal( -msg => 'Invalid post.  Post too large.',
+		      -alertMsg => "413 POST too large for CGI param: $key",
+		      -helpMsg => $self->{HHTML}->post_too_large() )
+	  if ( !$value && $self->cgi_error() );
+    };
                                              
 
     # Check to see if mandatory cgi form values are non-null.
@@ -184,7 +189,7 @@ sub parameter {
 sub redirect {
     #
     # Params: -url=> [, -cookie=> ].
-    # e.g. 'http://www.uoftfriends.com/help.html'  or '/help.html'.
+    # e.g. 'http://www.your_site.org/help.html'  or '/help.html'.
     #
     # Post:
     # 1. Redirect the client Web browser to the specified page.
@@ -229,11 +234,9 @@ __DATA__
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::CGI - CGI HANDLING FOR LIBWEB APPLICATIONS
+LibWeb::CGI - Extra cgi supports for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -292,33 +295,31 @@ LibWeb::Class
 
 =head1 ABSTRACT
 
-This class ISA the vanilla CGI.pm to provide some additional features.  It is
-still considered to be experimental but used internally by LibWeb::Session
-and LibWeb::Admin.
+This class ISA the vanilla CGI.pm to provide some additional features.
+It is still considered to be experimental but used internally by
+LibWeb::Session and LibWeb::Admin.
 
 The current version of LibWeb::CGI is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
 Several LibWeb applications (LEAPs) have be written, released and
 are available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 TYPOGRAPHICAL CONVENTIONS AND TERMINOLOGY
 
-Variables in all-caps (e.g. MAX_LOGIN_ATTEMPT_ALLOWED) are those variables
-set through LibWeb's rc file.  Please read L<LibWeb::Core> for
-more information.  `Sanitize' means escaping any illegal character
+Variables in all-caps (e.g. MAX_LOGIN_ATTEMPT_ALLOWED) are those
+variables set through LibWeb's rc file.  Please read L<LibWeb::Core>
+for more information.  `Sanitize' means escaping any illegal character
 possibly entered by user in a HTML form.  This will make Perl's taint
 mode happy and more importantly make your site more secure.
 Definition for illegal characters is given in L<LibWeb::Core>.  All
-`error/help messages' mentioned can be found at L<LibWeb::HTML::Error> and
-they can be customized by ISA (making a sub-class of) LibWeb::HTML::Default.
-Please see L<LibWeb::HTML::Default> for details.  Method's parameters in
-square brackets means optional.
+`error/help messages' mentioned can be found at L<LibWeb::HTML::Error>
+and they can be customized by ISA (making a sub-class of)
+LibWeb::HTML::Default.  Please see L<LibWeb::HTML::Default> for
+details.  Method's parameters in square brackets means optional.
 
 =head1 DESCRIPTION
 
@@ -332,28 +333,30 @@ args: [ -post_max=>, -disable_uploads=>, -auto_escape=> ]
 
 =item *
 
--post_max is the ceiling on the size of POSTings, in bytes.  The default for
-LibWeb::CGI is 100 Kilobytes.
+C<-post_max> is the ceiling on the size of POSTings, in bytes.  The
+default for LibWeb::CGI is 100 Kilobytes.
 
 =item *
 
--disable_uploads, if non-zero, will disable file uploads completely which is
-the default for LibWeb::CGI.
+C<-disable_uploads>, if non-zero, will disable file uploads completely
+which is the default for LibWeb::CGI.
 
 =item *
 
--auto_escape determines whether the text and labels that you provide for form
-elements are escaped according to HTML rules.  Non-zero value will enable auto
-escape, and undef will disable auto escape (default for LibWeb::CGI).
+C<-auto_escape> determines whether the text and labels that you
+provide for form elements are escaped according to HTML rules.
+Non-zero value will enable auto escape, and undef will disable auto
+escape (default for LibWeb::CGI).
 
 =back
 
 B<header()>
 
-If you provide parameter to that method, it will delegate to the vanilla CGI's
-header(); otherwise, it will print out "Content-Type: text/html$CRLF$CRLF"
-immediately (faster?).  $CRLF will depend on the machine you are running LibWeb
-and LibWeb will determine it automatically.
+If you provide parameter to that method, it will delegate to the
+vanilla CGI's header(); otherwise, it will print out "Content-Type:
+text/html$CRLF$CRLF" immediately (faster?).  $CRLF will depend on the
+machine you are running LibWeb and LibWeb will determine it
+automatically.
 
 B<parameter()>
 
@@ -363,37 +366,38 @@ B<parameter()>
 
 =item *
 
-`cgi_parameter_to_fetch' is the parameter passed by either `GET' or `POST' via
-a HTML form.
+`cgi_parameter_to_fetch' is the parameter passed by either `GET' or
+`POST' via a HTML form.
 
 =item *
 
-If `cgi_parameter_to_fetch' is a mandatory form value (one without `.' as prefix
-in the parameter's name) and it is null, it will print out an error message, abort
-the program and send the site administrator an alert e-mail.  It is intended so save
-the effort to check whether the user has entered something for mandatory HTML form
-values.  To use this nice feature, you name mandatory form value without `.' as
+If `cgi_parameter_to_fetch' is a mandatory form value (one without `.' 
+as prefix in the parameter's name) and it is null, it will print out
+an error message, abort the program and send the site administrator an
+alert e-mail.  It is intended so save the effort to check whether the
+user has entered something for mandatory HTML form values.  To use
+this nice feature, you name mandatory form value without `.' as
 prefix, for example,
 
   <input type="text" name="email">
 
-For non-mandatory form values, you name them by attaching `.' as a prefix to skip
-the test, for example,
+For non-mandatory form values, you name them by attaching `.' as a
+prefix to skip the test, for example,
 
   <input type="text" name=".salary_range">
 
-If you find this not really helpful, you should use the vanilla param() which is
-totally unaltered in LibWeb::CGI.  For example,
+If you find this not really helpful, you should use the vanilla
+param() which is totally unaltered in LibWeb::CGI.  For example,
 
   my $param = $q->param('param_to_fetch');
 
-and LibWeb::CGI will delegate the call to the vanilla CGI's param().  Another
-reason to use parameter() (or not to use it) is that it automatically checks for
-any possible denial of service attack by calling CGI::cgi_error().  If the POST
-is too large, it will print out an error message and send an e-mail alerting the
-site administrator.  CGI::cgi_error() is available since CGI 2.47 but seems to be
-disappeared in new release of CGI.pm 3.01 alpha (24/04/2000).  You should stick
-with param() instead if your CGI is < 2.47.
+and LibWeb::CGI will delegate the call to the vanilla CGI's param().
+Another reason to use parameter() (or not to use it) is that it
+automatically checks for any possible denial of service attack by
+calling CGI::cgi_error().  If the POST is too large, it will print out
+an error message and send an e-mail alerting the site administrator.
+CGI::cgi_error() is available since CGI 2.47 but seems to be
+disappeared in new release of CGI.pm 3.01 alpha (24/04/2000).
 
 
 =back
@@ -404,8 +408,9 @@ Params:
 
   -url=> [, -cookie=> ]
 
-This will redirect the client web browser to the specified url and send it the
-cookie specified.  An example of a cookie to pass to that method will be,
+This will redirect the client web browser to the specified url and
+send it the cookie specified.  An example of a cookie to pass to that
+method will be,
 
   $cookie1 = 'auth1=0; path=/; expires=Thu, 01-Jan-1970 00:00:01 GMT';
   $cookie2 = 'auth2=0; path=/; expires=Thu, 01-Jan-1970 00:00:01 GMT';
@@ -415,11 +420,11 @@ cookie specified.  An example of a cookie to pass to that method will be,
                -cookie => [ $cookie1, $cookie2 ]
               );
 
-For -cookie=>, you can pass either a scalar or an ARRAY reference.  This method
-will eventually delegate to the vanilla CGI's redirect().  Why bother doing this
-is because the vanilla CGI's redirect() does not guarantee to work if you pass
-relative url; whereas LibWeb::CGI::redirect() guarantees that partial url will
-still work.
+For C<-cookie>, you can pass either a scalar or an ARRAY reference.
+This method will eventually delegate to the vanilla CGI's redirect().
+Why bother doing this is because the vanilla CGI's redirect() does not
+guarantee to work if you pass relative url; whereas
+LibWeb::CGI::redirect() guarantees that partial url will still work.
 
 B<send_cookie()>
 
@@ -451,17 +456,43 @@ This delegates to LibWeb::Core::sanitize().  See L<LibWeb::Core>.
 
 =head1 BUGS
 
+=head2 Bug number 1
+
+When you delegate subroutine calls within a cgi script,
+$q->param(_variable_) or $q->parameter(_variable_) may not give you
+the value of C<_variable_> even you have passed a value for that
+variable in a HTML form.  I do not know why.  My two workarounds,
+
+=over 2
+
+=item *
+
+Instantiate another CGI or LibWeb::CGI object within the subroutine
+where you want to fetch the parameter and use that object to call
+C<param()> or C<parameter()>, or
+
+=item *
+
+Initiate all CGI variables and/or fetch all CGI parameters at the
+beginning of your script.
+
+=back
+
+=head2 Bug number 2
+
 B<new()>
 
 args: [ -post_max=>, -disable_uploads=>, -auto_escape=> ]
 
-The -auto_escape=> doesn't seems to work as expected.  Hopefully it will be
-resolved after I get a better understanding of how auto escape works in the
-vanilla CGI.
+The C<-auto_escape> doesn't seems to work as expected.  Hopefully it
+will be resolved after I get a better understanding of how auto escape
+works in the vanilla CGI.
 
-There is no selfloaded method in LibWeb::CGI since whenever I try to put the
-__DATA__ token in this module, it just doesn't work well with the vanilla CGI.
-This has to be figured out.
+=head2 Bug number 3
+
+There is no selfloaded method in LibWeb::CGI since whenever I try to
+put ``use SelfLoader;'' in this module, it just doesn't work well with
+the vanilla CGI.  This has to be figured out.
 
 Miscellaneous OO issues with the vanilla CGI have yet to be resolved.
 

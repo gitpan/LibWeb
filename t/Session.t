@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: Session.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -66,8 +69,8 @@ sub test {
 
 # test_LibWeb_Session
 eval "use LibWeb::Session";
-test(1, !$@, 'Could not load LibWeb::Session module.');
+test(1, !$@, "Could not load LibWeb::Session module.  $@");
 
 my $session;
 eval { $session = LibWeb::Session->new( $rc ); };
-test(2, !$@, 'LibWeb::Session cannot be instantiated.');
+test(2, !$@, "LibWeb::Session cannot be instantiated.  $@");

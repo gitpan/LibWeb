@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: HTMLD.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -46,13 +49,13 @@ sub test {
 
 # test_LibWeb_HTML_Default
 eval "use LibWeb::HTML::Default";
-test(2, !$@, 'Could not load LibWeb::HTML::Default module.');
+test(2, !$@, "Could not load LibWeb::HTML::Default module.  $@");
 my $html;
 eval { $html = LibWeb::HTML::Default->new( $rc ); };
-test(3, !$@, 'LibWeb::HTML::Default cannot be instantiated.');
+test(3, !$@, "LibWeb::HTML::Default cannot be instantiated.  $@");
 my $display;
 eval { $display = $ { $html->display(-content=>[" "]) } ne " "; };
-test(4, $display, 'LibWeb::HTML::Default::display fialed.');
+test(4, $display, 'LibWeb::HTML::Default::display failed.');
 my $display_error;
 eval {
     $display_error =

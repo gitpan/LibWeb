@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: Core.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -46,11 +49,11 @@ sub test {
 
 # test_LibWeb_Database
 eval "use LibWeb::Core";
-test(2, !$@, 'Could not load LibWeb::Core module.');
+test(2, !$@, "Could not load LibWeb::Core module.  $@");
 
 my $core;
 eval { $core = LibWeb::Core->new( $rc ); };
-test(3, !$@, 'LibWeb::Core cannot be instantiated.');
+test(3, !$@, "LibWeb::Core cannot be instantiated.  $@");
 
 eval { $core->fatal( -msg=>'testing', -alertMsg=>'testing', -isAlert=>0, -isDisplay=>0 ); };
-test(4, !$@, 'LibWeb::Core::fatal() failed.');
+test(4, !$@, "LibWeb::Core::fatal() failed.  $@");

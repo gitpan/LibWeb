@@ -1,6 +1,5 @@
 #=============================================================================
-# LibWeb::Database::Mysql -- a component of LibWeb--a Perl library/toolkit for
-#                            building World Wide Web applications.
+# LibWeb::Database::Mysql -- Mysql database driver for libweb applications.
 
 package LibWeb::Database::Mysql;
 
@@ -21,26 +20,31 @@ package LibWeb::Database::Mysql;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
+# $Id: Mysql.pm,v 1.4 2000/07/18 06:33:30 ckyc Exp $
+
 # Implementing common, database-specific subroutines.
 # This module is for interacting with a MySQL server and therefore
 # uses MySQL specific syntax and built-in functions.
 
-# For debugging purposes.  Should be commented out in production release.
-
+#-############################
 # Use standard library.
 use strict;
 use vars qw(@ISA $VERSION);
 
+#-############################
 # Use custom library.
 require LibWeb::Database;
 
+#-############################
+# Version.
+$VERSION = '0.02';
+
+#-############################
 # Inheritance.
 @ISA = qw(LibWeb::Database);
 
-$VERSION = '0.01';
-
-#=======================================================================
-# Constructor.
+#-############################
+# Methods.
 sub new {
     #
     # Params: $class [, $rc_file]
@@ -65,10 +69,6 @@ sub new {
     # Returns a reference to this object.
     return $self;
 }
-
-# sub _init {
-#     # Initialization whenever an object of this class is created.
-# }
 
 sub DESTROY {
     # Destructor: performs cleanup when this object is not being referenced
@@ -105,11 +105,9 @@ __DATA__
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::Database::Mysql - MySQL DATABASE API FOR LIBWEB APPLICATIONS
+LibWeb::Database::Mysql - Mysql database API for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -158,20 +156,20 @@ LibWeb::Database
 =head1 ABSTRACT
 
 This class provides enhanced support to MySQL database interaction in
-you LibWeb applications.  This class also ISA LibWeb::Database so you
+you LibWeb applications.  This class also ISAs LibWeb::Database so you
 can use all the methods provided in LibWeb::Database via objects
-created from this class.  See L<LibWeb::Database>.
+created from this class.  See L<LibWeb::Database>.  This module is
+still in the stage of planning as you can tell from the number of
+methods available.
 
 The current version of LibWeb::Database::Mysql is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
-Several LibWeb applications (LEAPs) have be written, released and
-are available at
+Several LibWeb applications (LEAPs) have be written, released and are
+available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 TYPOGRAPHICAL CONVENTIONS AND TERMINOLOGY
 
@@ -195,11 +193,11 @@ Pre:
 
 =item *
 
--table is a scalar indicating a database table's name,
+C<-table> is a scalar indicating a database table's name,
 
 =item *
 
--where is a scalar describing the `where' phrase of a SQL query.
+C<-where> is a scalar describing the `where' phrase of a SQL query.
 
 =back
 
@@ -210,7 +208,7 @@ Post:
 =item *
 
 Return the number of counts satisfying the criteria specified in the
--where parameter.
+C<-where> parameter.
 
 =back
 

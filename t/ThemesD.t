@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: ThemesD.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -46,10 +49,10 @@ sub test {
 
 # test_LibWeb_Themes_Default
 eval "use LibWeb::Themes::Default";
-test(2, !$@, 'Could not load LibWeb::Themes::Default module.');
+test(2, !$@, "Could not load LibWeb::Themes::Default module.  $@");
 my $theme;
 eval { $theme = LibWeb::Themes::Default->new( $rc ); };
-test(3, !$@, 'LibWeb::Themes::Default cannot be instantiated.');
+test(3, !$@, "LibWeb::Themes::Default cannot be instantiated.  $@");
 my($bordered_table, $table, $titled_bordered_table, $titled_table,
    $titled_table_enlighted) =
   (

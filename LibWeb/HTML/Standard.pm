@@ -1,8 +1,8 @@
 #==============================================================================
-# LibWeb::HTML::Site -- a component of LibWeb--a Perl library/toolkit for
-#                       building World Wide Web applications.
+# LibWeb::HTML::Standard -- An interface defining HTML display for libweb
+#                           applications.
 
-package LibWeb::HTML::Site;
+package LibWeb::HTML::Standard;
 
 # Copyright (C) 2000  Colin Kong
 #
@@ -21,20 +21,25 @@ package LibWeb::HTML::Site;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release.
+# $Id: Standard.pm,v 1.2 2000/07/19 20:31:57 ckyc Exp $
 
-# Use standard libraries.
+$VERSION = '0.02';
+
+#-##############################
+#  Use standard libraries.
 use strict; 
 use vars qw($VERSION @ISA);
 
+#-##############################
 # Use custom libraries.
 require LibWeb::Core;
 
-$VERSION = '0.01';
+#-##############################
+# Inheritance.
 @ISA = qw(LibWeb::Core);
 
-#=================================================================================
-# Constructor
+#-##############################
+# Methods.
 sub new {
     #
     # Params: $class , $rc_file, $error_object
@@ -91,39 +96,27 @@ sub display {
 # implements these HTML constructs.
 
 sub header {
-return \<<HTML;
-
-HTML
+    return [' '];
 }
 
 sub sheader {
-return \<<HTML;
-
-HTML
+    return [' '];
 }
 
 sub content {
-return \<<HTML;
-
-HTML
+    return [' '];
 }
 
 sub lpanel {
-return \<<HTML;
-
-HTML
+    return [' '];
 }
 
 sub rpanel {
-return \<<HTML;
-
-HTML
+    return [' '];
 }
 
 sub footer {
-return \<<HTML;
-
-HTML
+    return [' '];
 }
 
 1;
@@ -132,11 +125,10 @@ __DATA__
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::HTML::Site - AN INTERFACE FOR LIBWEB APPLICATIONS' HTML DISPLAY
+LibWeb::HTML::Standard - An interface defining HTML display for libweb
+applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -176,16 +168,14 @@ LibWeb::HTML::Default.
 This is an interface describing how a HTML page should be displayed.
 Please see L<LibWeb::HTML::Default> for the actual implementation.
 
-The current version of LibWeb::HTML::Site is available at
+The current version of LibWeb::HTML::Standard is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
-Several LibWeb applications (LEAPs) have be written, released and
-are available at
+Several LibWeb applications (LEAPs) have be written, released and are
+available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 DESCRIPTION
 
@@ -205,6 +195,6 @@ See L<LibWeb::HTML::Default>.
 
 =head1 SEE ALSO
 
-L<LibWeb::HTML::Default>.
+L<LibWeb::HTML::Default>, L<LibWeb::HTML::Error>
 
 =cut

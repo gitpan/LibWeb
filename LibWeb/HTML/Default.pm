@@ -1,6 +1,5 @@
 #=============================================================================
-# LibWeb::HTML::Default -- a component of LibWeb--a Perl library/toolkit for
-#                          building World Wide Web applications.
+# LibWeb::HTML::Default -- `stdout' HTML display for libweb applications.
 
 package LibWeb::HTML::Default;
 
@@ -21,28 +20,38 @@ package LibWeb::HTML::Default;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release.
+# $Id: Default.pm,v 1.6 2000/07/19 20:31:57 ckyc Exp $
 
+$VERSION = '0.02';
+
+#-################################
 # Use standard libraries.
 use strict;
+use Carp;
 use vars qw($VERSION @ISA);
 
-# Use custome libraries.
-require LibWeb::HTML::Site;
+#-################################
+# Use custom libraries.
+require LibWeb::HTML::Standard;
 require LibWeb::HTML::Error;
+require LibWeb::Themes::Default;
 
-$VERSION = '0.01';
-@ISA = qw( LibWeb::HTML::Site LibWeb::HTML::Error );
+#-################################
+# Inheritance.
+# Order of ISA is important here!
+@ISA = qw( LibWeb::HTML::Standard LibWeb::Themes::Default LibWeb::HTML::Error );
 
+#-################################
+# Methods.
 sub new {
     #
-    # Params: $class, $rc_file
+    # Params: _class_, _rc_file_ [, _error_obj_]
     #
-    # - $class is the class/package name of this package, be it a string
+    # - _class_ is the class/package name of this package, be it a string
     #   or a reference.
-    # - $rc_file is the absolute path to the rc file for LibWeb.
+    # - _rc_file_ is the absolute path to the rc file for LibWeb.
     #
-    # Usage: my $html = new LibWeb::HTML::Default( $rc_file );
+    # Usage: my $html = new LibWeb::HTML::Default( _rc_file_ );
     #
     # PLEASE do not edit anything in this ``new'' method unless you know
     # what you are doing.
@@ -54,10 +63,23 @@ sub new {
     bless( $self, $Class );
 }
 
-sub DESTROY {
-    # Destructor: performs cleanup when this object is not being
-    # referenced any more.  For example, disconnect a database
-    # connection, filehandle...etc.
+sub DESTROY {}
+
+sub _parse_construct {
+    my ($ref, @construct_display);
+    my $construct = $_[0];
+    
+    eval {
+	foreach (@$construct) {
+	    $ref = ref($_);
+	    if ( $ref eq 'SCALAR' ) { push(@construct_display, $$_); }
+	    elsif ( $ref eq 'ARRAY' ) { push(@construct_display, @$_); }
+	    else { push(@construct_display, $_); }
+	}
+    };
+    croak "$@" if ($@);
+
+    return \@construct_display;
 }
 
 #==================================================================================
@@ -67,7 +89,7 @@ sub DESTROY {
 #
 sub display {
    #
-   # Implementing base class method: LibWeb::HTML::Site::display().
+   # Implementing base class method: LibWeb::HTML::Standard::display().
    # Params: -content=>, [ -sheader=>, -lpanel=>, -rpanel=>, -header=>, -footer=> ].
    #
    # -content, -sheader, -lpanel, -rpanel, -header and -footer must be an ARRAY
@@ -86,57 +108,26 @@ sub display {
    # to Web client.
    #
    my ($self, $content, $sheader, $lpanel, $rpanel, $header, $footer,
-	@content_display, @sheader_display, @lpanel_display, @rpanel_display,
-	@header_display, @footer_display, $ref);
+       $content_display, $sheader_display, $lpanel_display, $rpanel_display,
+       $header_display, $footer_display);
    $self = shift;
    ($content, $sheader, $lpanel, $rpanel, $header, $footer) =
      $self->rearrange(['CONTENT', 'SHEADER', 'LPANEL', 'RPANEL', 'HEADER',
 			'FOOTER'], @_);
 
-   $content ||= [ $self->content() ];
-   $sheader ||= [ $self->sheader() ];
-   $lpanel ||= [ $self->lpanel() ];
-   $rpanel ||= [ $self->rpanel() ];
-   $header ||= [ $self->header() ];
-   $footer ||= [ $self->footer() ];
+   $content ||= $self->content();
+   $sheader ||= $self->sheader();
+   $lpanel ||= $self->lpanel();
+   $rpanel ||= $self->rpanel();
+   $header ||= $self->header();
+   $footer ||= $self->footer();
 
-   foreach (@$content) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@content_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@content_display, @$_); }
-       else { push(@content_display, $_); }
-   }
-   foreach (@$sheader) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@sheader_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@sheader_display, @$_); }
-       else { push(@sheader_display, $_); }
-   }
-   foreach (@$header) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@header_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@header_display, @$_); }
-       else { push(@header_display, $_); }
-   }
-   foreach (@$lpanel) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@lpanel_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@lpanel_display, @$_); }
-       else { push(@lpanel_display, $_); }
-   }
-   foreach (@$rpanel) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@rpanel_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@rpanel_display, @$_); }
-       else { push(@rpanel_display, $_); }
-   }
-
-   foreach (@$footer) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@footer_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@footer_display, @$_); }
-       else { push(@footer_display, $_); }
-   }
+   $content_display = _parse_construct($content);
+   $sheader_display = _parse_construct($sheader);
+   $lpanel_display = _parse_construct($lpanel);
+   $rpanel_display = _parse_construct($rpanel);
+   $header_display = _parse_construct($header);
+   $footer_display = _parse_construct($footer);
 
 #<!-- Begin template -->
 return \<<HTML;
@@ -145,27 +136,27 @@ return \<<HTML;
 <meta name="keywords" content="$self->{SITE_KEYWORDS}">
 <title>$self->{SITE_NAME}</title><link rel="stylesheet" href="$self->{CSS}"></head>
 <body bgcolor="$self->{SITE_BG_COLOR}" text="$self->{SITE_TXT_COLOR}">
-@header_display
-@sheader_display
+@$header_display
+@$sheader_display
 <table width="100%" cellspacing="10" cellpadding="0" border="0" bgcolor="$self->{SITE_BG_COLOR}">
 <Tr>
 
 <!-- Left panel -->
 <td width="20%" valign="top">
-@lpanel_display</td><!-- end left panel -->
+@$lpanel_display</td><!-- end left panel -->
 
 <!-- Content -->
 <td width="60%" valign="top">
-@content_display</td><!-- end content -->
+@$content_display</td><!-- end content -->
 
 <!-- Right panel -->
 <td width="20%" valign="top">
-@rpanel_display</td><!-- end right panel -->
+@$rpanel_display</td><!-- end right panel -->
 
 </Tr>
 </table>
 
-@footer_display</body></html>
+@$footer_display</body></html>
 
 HTML
 #<!-- End template -->
@@ -173,73 +164,29 @@ HTML
 
 #=================================================================================
 # Begin implementation for site's default header, sub header, left panel,
-# right panel, content, footer and possibly any other HTML constructs.
-
+# right panel, content, footer and possibly other HTML constructs.
 sub header {
-    my $self = shift;
-# Begin header
-return \<<HTML;
-<center>
-<a href="$self->{URL_ROOT}">
-<img src="$self->{SITE_LOGO_BG}" border="0" alt="$self->{SITE_NAME}">
-</a>
-</center>
-HTML
-# End header    
+    return [' '];
 }
 
 sub sheader {
-# Begin sheader
-return \<<HTML;
-
-HTML
-# End sheader
+    return [' '];
 }
 
 sub lpanel {
-# Begin lpanel
-return \<<HTML;
-
-HTML
-# End lpanel
+    return [' '];
 }
 
 sub content {
-    my $self = shift;
-    my $time = localtime();
-# Begin content 
-return \<<HTML;
-<br><center>$time</center><br><br><br>
-<p>Congratulations!  LibWeb has been successfully installed for
-$self->{SITE_NAME}.  For more information on how LibWeb can help you
-rapidly develop Web applications, please read the documentations
-available at
-<a href="http://libweb.sourceforge.net/">LibWeb's home page</a>.</p>
-<p>If you are looking for more information on plug-and-play Web
-applications for Web site with LibWeb installed, please go to the
-<a href="http://leaps.sourceforge.net">LEAPs' home page</a>.</p>
-<p>Thank you.</p>
-HTML
-# End content
+    return [' '];
 }
 
 sub rpanel {
-# Begin rpanel
-return \<<HTML;
-
-HTML
-# End rpanel
+    return [' '];
 }
 
 sub footer {
-    my $self = shift;
-return \<<HTML;
-<center><table border=0 width="60%"><Tr><td align="center"><hr size=1>
-<a href="$self->{COPYRIGHT}">Copyright</a>&nbsp;&copy;&nbsp;$self->{SITE_YEAR}&nbsp;$self->{SITE_NAME}.  All rights reserved.<br>
-<a href="$self->{TOS}">Terms of Service.</a> &nbsp;
-<a href="$self->{PRIVACY_POLICY}">Privacy Policy.</a>
-</td></Tr></table></center>
-HTML
+    return [' '];
 }
 
 1;
@@ -248,11 +195,9 @@ __DATA__
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb:: - HTML DISPLAY FOR LIBWEB APPLICATIONS
+LibWeb:: - HTML display for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -278,31 +223,40 @@ No non-standard Perl's library is required.
 
 =item *
 
-LibWeb::HTML::Site
+LibWeb::HTML::Standard
 
 =item *
 
 LibWeb::HTML::Error
+
+=item *
+
+LibWeb::Themes::Default
 
 =back
 
 =head1 SYNOPSIS
 
   use LibWeb::HTML::Default;
-  my $html =
-      new LibWeb::HTML::Default( '/absolute/path/to/libweb/rc_file' );
+
+  my $rc_file = '/absolute/path/to/dot_lwrc';
+  my $html = new LibWeb::HTML::Default($rc_file);
 
   $html->fatal(
-                -msg => 'You have not typed in the stock symbol.',
-                -alertMsg => 'Try to view stock quotes without a symbol.',
-                -helpMsg => $html->hit_back_and_edit()
+                -msg =>
+                  'You have not typed in the stock symbol.',
+                -alertMsg =>
+                  'Try to view stock quotes without a symbol.',
+                -helpMsg =>
+                  $html->hit_back_and_edit()
               )
       unless ($stock_symbol);
 
   my $display =
       $html->display(
-                      -content => [ $news, $stock_quotes, $weather ],
-                      -sheader=> [ $navigation_bar ],
+                      -content =>
+                        [ $news, $stock_quotes, $weather ],
+                      -sheader=> [ $tabbed_navigation_bar ],
                       -lpanel=> [ $banner_ad ],
                       -rpanel=> [ $back_issues, $downloads ],
                       -header=> undef,
@@ -315,19 +269,24 @@ LibWeb::HTML::Error
 I pass the absolute path to my LibWeb's rc (config) file to
 C<LibWeb::HTML::Default::new()> so that LibWeb can do things according
 to my site's preferences.  A sample rc file is included in the eg
-directory, if you could not find that, go to the following addresses
-to down load a standard distribution of LibWeb
-(http://libweb.sourceforge.net).  This synopsis also demonstrated how
-I have handled error by calling the C<fatal()> method.  For the
-C<display()> call, I passed `C<undef>' to C<-header> and C<-footer> to
-demonstrate how to tell the display to use default header and footer.
+directory, if you could not find that, go to the following address
+to down load a standard distribution of LibWeb,
+
+  http://libweb.sourceforge.net
+
+This synopsis also demonstrated how I have handled error by calling
+the C<fatal()> method.  For the C<display()> call, I passed C<undef>
+to C<-header> and C<-footer> to demonstrate how to tell the display to
+use default header and footer.
+
 Finally, I de-referenced C<$display> (by appending C<$> in front of
 the variable) to print out the HTML page.  Please see the synopsis of
 L<LibWeb::Themes::Default> to see how I have prepared C<$news,
-$weather, $stock_quotes, $back_issues and $navigation_bar>.  If I
-would like to customize the HTML display of LibWeb, I would have ISA
-LibWeb::HTML::Default, say a class called C<MyHTML> and I just have to
-replace the following two lines,
+$weather, $stock_quotes, $back_issues and $tabbed_navigation_bar>.
+
+If I would like to customize the HTML display of LibWeb, I would have
+ISAed LibWeb::HTML::Default, say a class called C<MyHTML> and I just
+have to replace the following two lines,
 
   use LibWeb::HTML::Default;
   my $html = new LibWeb::HTML::Default( $rc_file );
@@ -337,30 +296,32 @@ with
   use MyHTML;
   my $html = new MyHTML( $rc_file );
 
+A sample MyHTML.pm is included in the distribution for your hacking
+pleasure.
+
 =head1 ABSTRACT
 
-This class is a sub-class of both LibWeb::HTML::Site and
-LibWeb::HTML::Error and therefore it handles both normal and error
-display (HTML) for a LibWeb application.  To customize the behavior
-of display(), display_error() and built-in error/help messages, you
-can make a sub-class of LibWeb::HTML::Default (an example can be found
-in the eg directory.  If you could not find it, download a standard
-distribution from the following addresses).  In the sub-class you
-made, you can also add your own error messages.  You may want to take
-a look at L<LibWeb::HTML::Error> to see what standard error messages
-are built into LibWeb.  To override the standard error messages, you
-re-define them in the sub-class you made.
+This class is a sub-class of LibWeb::HTML::Standard,
+LibWeb::HTML::Error and LibWeb::Themes::Default and therefore it
+handles both standard and error display (HTML) for a LibWeb
+application.  To customize the behavior of C<display()>, C<display_error()>
+and built-in error/help messages, you can make a sub-class of
+LibWeb::HTML::Default (an example can be found in the eg directory.
+If you could not find it, download a standard distribution from the
+following address).  In the sub-class you made, you can also add
+your own error messages.  You may want to take a look at
+L<LibWeb::HTML::Error> to see what error messages are built into
+LibWeb.  To override the standard error messages, you re-define them
+in the sub-class you made.
 
 The current version of LibWeb::HTML::Default is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
 Several LibWeb applications (LEAPs) have be written, released and
 are available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 TYPOGRAPHICAL CONVENTIONS AND TERMINOLOGY
 
@@ -378,9 +339,7 @@ Params:
 
 =over 2
 
-=item
-
-I<class>, I<rc_file>
+=item I<class>, I<rc_file>
 
 =back
 
@@ -394,8 +353,8 @@ Pre:
 
 =item *
 
-I<class> is the class/package name of this package, be it a string or a
-reference.
+I<class> is the class/package name of this package, be it a string or
+a reference.
 
 =item *
 
@@ -405,11 +364,12 @@ I<rc_file> is the absolute path to the rc file for LibWeb.
 
 B<display()>
 
-This implements the base class method: LibWeb::HTML::Site::display().
+This implements the base class method: LibWeb::HTML::Standard::display().
 
 Params:
 
-  -content=>, [ -sheader=>, -lpanel=>, -rpanel=>, -header=>, -footer=> ]
+  -content=>, [ -sheader=>, -lpanel=>, -rpanel=>,
+                -header=>, -footer=> ]
 
 Pre:
 
@@ -417,9 +377,9 @@ Pre:
 
 =item *
 
--content, -sheader, -lpanel, -rpanel, -header and -footer each must be
-an ARRAY reference to elements which are scalars/SCALAR
-references/ARRAY references,
+C<-content>, C<-sheader>, C<-lpanel>, C<-rpanel>, C<-header> and
+C<-footer> each must be an ARRAY reference to elements which are
+scalars/SCALAR references/ARRAY references,
 
 =item *
 
@@ -428,27 +388,27 @@ ARRAY references must be scalars and NOT references,
 
 =item *
 
--content default is content(),
+C<-content> default is C<content()>,
 
 =item *
 
--sheader stands for ``sub header'' and default is sheader(),
+C<-sheader> stands for ``sub header'' and default is C<sheader()>,
 
 =item *
 
--lpanel default is lpanel(),
+C<-lpanel> default is C<lpanel()>,
 
 =item *
 
--rpanel default is rpanel(),
+C<-rpanel> default is C<rpanel()>,
 
 =item *
 
--header default is header(),
+C<-header> default is C<header()>,
 
 =item *
 
--footer default is footer().
+C<-footer> default is C<footer()>.
 
 =back
 
@@ -458,13 +418,13 @@ Post:
 
 =item *
 
-Return a scalar reference to a formatted HTML page suitable for
-display to a Web client (browser).
+Return a SCALAR reference to a formatted HTML page suitable for
+display to a Web browser.
 
 =back
 
-Each of the following methods return a SCALAR reference to a HTML
-construct.  These are the defaults used by the C<display()> method.
+Each of the following methods return an ARRAY reference to partial
+HTML.  These are the defaults used by the C<display()> method.
 
 B<header()>
 
@@ -492,7 +452,7 @@ B<footer()>
 
 =head1 SEE ALSO
 
-L<LibWeb::Core>, L<LibWeb::HTML::Error>, L<LibWeb::HTML::Site>,
+L<LibWeb::Core>, L<LibWeb::HTML::Error>, L<LibWeb::HTML::Standard>,
 L<LibWeb::Themes::Default>.
 
 =cut

@@ -23,6 +23,8 @@
 #
 #======================================================================
 
+# $Id: lm.cgi,v 1.4 2000/07/18 06:33:30 ckyc Exp $
+
 #=============================================================
 # Begin edit.
 
@@ -32,19 +34,19 @@
 
 # Where is your LibWeb rc (config) file located?
 # (Absolute path; NOT url).
-my $Rc_file = '/home/my_site/lw_rc_file';
+my $Rc_file = '/home/me/dot_lwrc';
 
-# When a remote user has signed up, this script will sned
+# When a remote user has signed up, this script will send
 # her/him an e-mail message.  Put your message here.
-my $msg_to_new_user = 'your_message_to_new_user';
+my $msg_to_new_user = 'Welcome.  Thank you for signing up.';
 
 # Assign 0 if you do not want to send an e-mail to new user.
 my $is_send_mail_to_new_user = 1;
 
-# The first script to which the user will be directed once
-# he/she has been authenticated (relative URL).  Make sure
-# use LibWeb::Session in that script!!
-my $first_script = '/cgi-bin/first_script';
+# The first script (relative URL) to which the user will be directed
+# once he/she has been authenticated.  Make sure to use
+# LibWeb::Session in that script!!
+my $first_script = '/cgi-bin/first_script.cgi';
 
 # For debugging cgi script via a web browser.
 # Should be commented out in production release of this script.
@@ -56,17 +58,20 @@ use CGI::Carp qw(fatalsToBrowser);
 # Make perl taint mode happy.
 $ENV{PATH} = "";
 
-# Use standard libraries.
+#-###########################
+#  Use standard libraries.
 use strict;
 
-# Use custome libraries.
-use LibWeb::HTML::Default;
-use LibWeb::Themes::Default;
-use LibWeb::CGI;
-use LibWeb::Database;
-use LibWeb::Admin;
+#-###########################
+#  Use custom libraries.
+require LibWeb::HTML::Default;
+require LibWeb::Themes::Default;
+require LibWeb::CGI;
+require LibWeb::Database;
+require LibWeb::Admin;
 
-# Global variables.
+#-###########################
+#  Global variables.
 my $html = LibWeb::HTML::Default->new( $Rc_file );
 my $themes = LibWeb::Themes::Default->new();
 my $a = LibWeb::Admin->new();
@@ -74,15 +79,16 @@ my $q = LibWeb::CGI->new();
 my $db = LibWeb::Database->new();
 my $this = $ENV{SCRIPT_NAME};
 
-# CGI paramters.
+#-###########################
+#  CGI parameters.
 my $p_a = '.a';
 my $p_user_name = 'user_name';
 my $p_guess = 'password';
 my $p_new_guess1 = 'new_password_1';
 my $p_new_guess2 = 'new_password_2';
 my $p_email = 'email';
-my $p_is_just_login = '.a';
-my $p_is_first_time = '.b';
+my $p_is_just_login = '.b';
+my $p_is_first_time = '.c';
 my $p_login_form = 'login_form';
 my $p_new_form = 'new_form';
 my $a_login = 'login';
@@ -91,7 +97,8 @@ my $a_is_logout = 'is_logout';
 my $a_new = 'new';
 my $action = $q->parameter($p_a);
 
-# MAIN.
+#-###########################
+#  MAIN.
 if ($action eq $a_login) { login(); }
 elsif ($action eq $a_logout) { logout(); }
 elsif ($action eq $a_is_logout) { is_logout(); }
@@ -99,20 +106,21 @@ elsif ($action eq $a_new) { add_new_user(); }
 else { print_login_page(); }
 exit(0);
 
-#============================================================================
+#-###########################
+# Subroutines
 sub login {
-    # If the user is authenticated, redirect him/her to his/her control panel.
+    ## If the user is authenticated, redirect him/her to his/her control panel.
     my ($user_name, $guess, $is_just_login);
     $user_name = $q->parameter($p_user_name);
     $guess = $q->parameter($p_guess);
 
-    # Input checking.
+    ## Input checking.
     $a->fatal(-msg => 'User name not entered.',
 	      -alertMsg => 'lm.cgi::login(): user name not entered.',
 	      -helpMsg => $html->hit_back_and_edit())
       unless defined($user_name);
     $a->fatal(-msg => 'Password not entered.',
-	      -alertMsg => "lm.cgi::login(): password not entered fo user: $user_name",
+	      -alertMsg => "lm.cgi::login(): password not entered for user: $user_name",
 	      -helpMsg => $html->hit_back_and_edit())
       unless defined($guess);
 
@@ -136,6 +144,7 @@ sub logout {
 }
 
 sub is_logout {
+    ##
     # Check to see if cookie has been nullified and deleted on remote
     # client Web browser.  Print a confirmation message if so.
     if ( $a->is_logout() ) { print_is_logout_page(); }
@@ -147,14 +156,14 @@ sub is_logout {
 }
 
 sub add_new_user {
-    # Add new user to database and redirect him/her to the control panel.
+    ## Add new user to database and redirect him/her to the control panel.
     my ($user_name, $guess1, $guess2, $email, $is_just_login, $is_first_time);
     $user_name = $q->parameter($p_user_name);
     $guess1 = $q->parameter($p_new_guess1);
     $guess2 = $q->parameter($p_new_guess2);
     $email = $q->parameter($p_email);
 
-    # Input checking.
+    ## Input checking.
     $a->fatal(-msg => 'User name not entered.',
 	      -alertMsg => 'lm.cgi::add_new_user(): user name not entered.',
 	      -helpMsg => $html->hit_back_and_edit())
@@ -196,10 +205,21 @@ sub add_new_user {
     }
 }
 
+sub _email_msg_to_new_user {
+    #
+    # Args: $new_user_name (scalar).
+    #
+return \<<EOM;
+Hello $_[0],
+$msg_to_new_user
+EOM
+}
+
 sub print_login_page {
     # Print out a HTML login page, which also allows new user to sign up.
     $q->delete_all();
     $q->autoEscape(undef);
+    ##
     # Set the expire date of the login page so that anything entered in the
     # login form will not show up again once leave the page.
     print $q->header( -expires => $a->{CLASSIC_EXPIRES} );
@@ -215,7 +235,7 @@ sub print_is_logout_page {
     print ${ _is_logout_page_html() };
 }
 
-#================================================================================
+#-##############################
 # Page constructs.
 sub _sheader {
     return undef; # Use LibWeb::HTML::Default sheader.
@@ -234,20 +254,24 @@ sub _header {
 }
 
 sub _footer {
-my $javascript=<<HTML;
+my $r = \<<HTML;
 <script language="JavaScript">
 <!--
   document.$p_login_form.$p_user_name.focus();
 // -->
 </script>
-HTML
 
-# Use LibWeb::HTML::Default footer plus that little javascript.
-return [ \$javascript, $html->footer() ];
+<center><table border=0 width="60%"><Tr><td align="center"><hr size=1>
+Copyright&nbsp;&copy;&nbsp;$html->{SITE_YEAR}&nbsp;$html->{SITE_NAME}.  All rights reserved.<br>
+<a href="$html->{TOS}">Terms of Service.</a> &nbsp;
+<a href="$html->{PRIVACY_POLICY}">Privacy Policy.</a>
+</td></Tr></table></center>
+HTML
+return [ $r ];
 }
 
-#================================================================================
-# HTML.
+#-#####################################
+# HTML pages.
 sub _login_page_html {
     my ($sign_in, $sign_in_form, $registration,
 	$registration_form, $terms);
@@ -279,8 +303,8 @@ sub _login_page_html {
 		    $q->end_table() . $q->end_form();
 		    
     $sign_in = $themes->titled_table( -title => 'Sign in', -title_align => 'left',
-				    -title_bg_color => $a->{SITE_LIQUID_COLOR3},
-				    -content => [\$sign_in_form] );
+				      -title_bg_color => $a->{SITE_LIQUID_COLOR3},
+				      -content => [\$sign_in_form] );
 
     $registration_form = $q->start_form( { -action => $this,
 					   -name => $p_new_form,
@@ -326,7 +350,7 @@ sub _login_page_html {
 
     $registration = $themes->titled_table( -title => 'New sign up',
 					   -title_bg_color => $a->{SITE_LIQUID_COLOR3},
-					   -title_align => 'left', $q->br(),
+					   -title_align => 'left',
 					   -content => [\$registration_form] );
 
     return $html->display(
@@ -341,16 +365,6 @@ sub _is_logout_page_html {
     my ($content, $display);
     return $html->display( -sheader =>
 			    ['<BIG>You have logged out successfully.</BIG>'] );
-}
-
-sub _email_msg_to_new_user {
-    #
-    # Args: $new_user_name (scalar).
-    #
-return \<<EOM;
-Hello $_[0],
-$msg_to_new_user
-EOM
 }
 
 1;

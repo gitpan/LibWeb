@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: Time.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -46,11 +49,11 @@ sub test {
 
 # test_LibWeb_Database
 eval "use LibWeb::Time";
-test(2, !$@, 'Could not load LibWeb::Time module.');
+test(2, !$@, "Could not load LibWeb::Time module.  $@");
 
 my $timer;
 eval { $timer= LibWeb::Time->new(); };
-test(3, !$@, 'LibWeb::Time cannot be instantiated.');
+test(3, !$@, "LibWeb::Time cannot be instantiated.  $@");
 test(4, defined $timer->get_date(), 'LibWeb::Time::get_time() failed.');
 test(5, defined $timer->get_datetime(), 'LibWeb::Time::get_datetime() failed.');
 test(6, defined $timer->get_time(), 'LibWeb::Time::get_time() failed.');

@@ -1,6 +1,5 @@
 #==============================================================================
-# LibWeb::Crypt -- a component of LibWeb--a Perl library/toolkit for building
-#                  World Wide Web applications.
+# LibWeb::Crypt -- Encryption for libweb applications.
 
 package LibWeb::Crypt;
 
@@ -21,22 +20,31 @@ package LibWeb::Crypt;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release. 
+# $Id: Crypt.pm,v 1.4 2000/07/18 06:33:30 ckyc Exp $
 
+#-#############################
 # Use standard library.
 use strict;
 use vars qw($VERSION @ISA);
-require Digest::HMAC;
-require Digest::SHA1;
-require Digest::MD5;
+
+#-#############################
+# Use custom library.
+# This class should not require LibWeb::Core.
+# You have been warned!.
 require Crypt::CBC;
-
-#Use custom library.
 require LibWeb::Class;
+##require Crypt::Blowfish; Crypt::IDEA, or Crypt::DES;
 
-$VERSION = '0.01';
+#-#############################
+# Version.
+$VERSION = '0.02';
+
+#-#############################
+# Inheritance.
 @ISA = qw(LibWeb::Class);
 
+#-#############################
+# Methods.
 sub new {
     my ($class, $Class, $self);
     $class = shift; 
@@ -46,46 +54,6 @@ sub new {
 }
 
 sub DESTROY {}
-
-sub generate_MAC {
-    #
-    # Params: -data=>, -key=>, -algorithm=>, -format=>
-    # e.g. -algorithm => 'Digest::MD5'
-    # e.g. -algorithm => 'Digest::SHA1'
-    # e.g. -format => 'binary' or 'hex' or 'b64'.
-    #
-    my ($self, $data, $key, $algorithm, $format, $hmac);
-    $self = shift;
-    ($data, $key, $algorithm, $format) =
-      $self->rearrange(['DATA', 'KEY', 'ALGORITHM', 'FORMAT'], @_);
-
-    $format = uc($format);
-    $hmac = Digest::HMAC->new($key, $algorithm);
-    $hmac->add($data);
-    return $hmac->digest if ($format eq 'BINARY');
-    return $hmac->hexdigest if ($format eq 'HEX');
-    return $hmac->b64digest if ($format eq 'B64');
-}
-
-sub generate_digest {
-    #
-    # Params: -data=>, -key=>, -algorithm=>, -format=>
-    # e.g. -algorithm => 'Digest::MD5'
-    # e.g. -algorithm => 'Digest::SHA1'
-    # e.g. -format => 'binary' or 'hex' or 'b64'.
-    #
-    my ($self, $data, $key, $algorithm, $format, $ctx);
-    $self = shift;
-    ($data, $key, $algorithm, $format) =
-      $self->rearrange(['DATA', 'KEY', 'ALGORITHM', 'FORMAT'], @_);
-
-    $format = uc($format);
-    $ctx = $algorithm->new;
-    $ctx->add( $data . $key );
-    return $ctx->digest if ($format eq 'BINARY');
-    return $ctx->hexdigest if ($format eq 'HEX');
-    return $ctx->b64digest if ($format eq 'B64');
-}
 
 sub encrypt_cipher {
     #
@@ -145,11 +113,9 @@ sub encrypt_password {
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::Crypt - ENCRYPTION & GENERATING DIGEST FOR LIBWEB APPLICATIONS
+LibWeb::Crypt - Encryption for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -165,23 +131,11 @@ LibWeb::Crypt - ENCRYPTION & GENERATING DIGEST FOR LIBWEB APPLICATIONS
 
 =item *
 
-Digest::HMAC
-
-=item *
-
-Digest::SHA1
-
-=item *
-
-Digest::MD5
-
-=item *
-
 Crypt::CBC
 
 =item *
 
-Crypt::Blowfish (recommended) or Crypt::DES or Crypt::IDEA
+Crypt::Blowfish (recommended), Crypt::DES or Crypt::IDEA
 
 =back
 
@@ -198,41 +152,26 @@ LibWeb::Class
 =head1 SYNOPSIS
 
   use LibWeb::Crypt;
-  my $crypt = new LibWeb::Crypt();
-
-  my $mac = $crypt->generate_MAC(
-                                  -data => $data,
-                                  -key => $key,
-                                  -algorithm => 'Digest::SHA1',
-                                  -format => 'b64'
-                                );
-
-  my $digest =
-      $crypt->generate_digest(
-                               -data => $data,
-                               -key => $key,
-                               -algorithm => 'Digest::MD5',
-                               -format => 'b64'
-                             );
+  my $c = new LibWeb::Crypt();
 
   my $cipher =
-      $crypt->encrypt_cipher(
-                              -data => $plain_text,
-                              -key => $key,
-                              -algorithm => 'Crypt::Blowfish',
-                              -format => 'hex'
-                            );
+      $c->encrypt_cipher(
+			 -data => $plain_text,
+			 -key => $key,
+			 -algorithm => 'Crypt::Blowfish',
+			 -format => 'hex'
+			);
 
   my $plain_text =
-      $crypt->decrypt_cipher(
-                              -cipher => $cipher,
-                              -key => $key,
-                              -algorithm => 'Crypt::Blowfish',
-                              -format => 'hex'
-                            );
+      $c->decrypt_cipher(
+			 -cipher => $cipher,
+			 -key => $key,
+			 -algorithm => 'Crypt::Blowfish',
+			 -format => 'hex'
+			);
 
-  my $crypted_pass =
-      $crypt->encrypt_password('password_in_plain_text');
+  my $encrypted_pass =
+      $c->encrypt_password('password_in_plain_text');
 
 =head1 ABSTRACT
 
@@ -242,19 +181,9 @@ This class provides methods to
 
 =item *
 
-Generate message authenticity check (MAC) code (mostly used in authentication
-cookies sent to browser),
-
-=item *
-
-generate digest code (binary, hex or B64) by using the algorithm provided by
-either Digest::MD5 or Digest::SHA1,
-
-=item *
-
-encrypt data of arbitrary length into cipher (binary or hex) by using the
-algorithm provided by Crypt::Blowfish, Crypt::DES or Crypt::IDEA, and chained
-by using Crypt::CBC,
+encrypt data of arbitrary length into cipher (binary or hex) by using
+the algorithm provided by Crypt::Blowfish, Crypt::DES or Crypt::IDEA,
+and chained by using Crypt::CBC,
 
 =item *
 
@@ -262,161 +191,23 @@ decrypt ciphers generated by this class,
 
 =item *
 
-encrypt plain text password by using the perl's crypt() routine with randomly
-chosen salt.
+encrypt plain text password by using the perl's crypt() routine with
+randomly chosen salt.
 
 =back
 
 The current version of LibWeb::Crypt is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
 Several LibWeb applications (LEAPs) have be written, released and
 are available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 DESCRIPTION
 
-=head2 GENERATING A MAC FOR USER/SESSION AUTHENTICATION
-
-The following discussion on MAC is extracted from a WWW security FAQ written by
-Lincoln Stein,
-
-  http://www.w3.org/Security/Faq/wwwsf7.html#Q66
-
-''If possible, cookies should contain information that allows the system 
-to verify that the person using them is authorized to do so. A popular scheme
-is to include the following information in cookies: 
-
-  1.the session ID or authorization information 
-  2.the time and date the cookie was issued 
-  3.an expiration time 
-  4.the IP address of the browser the cookie was issued to 
-  5.a message authenticity check (MAC) code 
-
-By incorporating an expiration date and time into the cookie, system designers
-can limit the potential damage that a hijacked cookie can do. If the cookie is
-intercepted, it can only be used for a finite time before it becomes invalid.
-The idea of including the browser's IP address into the cookie is that the
-cookie will only be accepted if the stored IP address matches the IP address of
-the browser submitting it.  This makes it difficult for an interloper to hijack
-the cookie, because it is hard (although not impossible) to spoof an IP address. 
-
-The MAC code is there to ensure that none of the fields of the cookie have been
-tampered with.  There are many ways to compute a MAC, most of which rely on
-one-way hash algorithms such as MD5 or SHA to create a unique fingerprint for
-the data within the cookie. Here's a simple but relatively secure technique that
-uses MD5: 
-
-    MAC = MD5("secret key " +
-               MD5("session ID" + "issue date" +
-                   "expiration time" + "IP address" +
-                   "secret key")
-              )
-
-This algorithm first performs a string concatenation of all the data fields in
-the cookie, then adds to it a secret string known only to the Web server. The
-whole is then passed to the MD5 function to create a unique hash. This value is
-again concatenated with the secret key, and the whole thing is rehashed. (The
-second round of MD5 hashing is necessary in order to avoid an attack in which
-additional data is appended to the end of the cookie and a new hash recalculated
-by the attacker.) 
-
-This hash value is now incorporated into the cookie data. Later, when the cookie
-is returned to the server, the software should verify that the cookie hasn't
-expired and is being returned by the proper IP address. Then it should regenerate
-the MAC from the data fields, and compare that to the MAC in the cookie. If they
-match, there's little chance that the cookie has been tampered with.'' -- Lincoln
-Stein.
-
-In fact, this is the technique used by LibWeb to handle user/session authentication
-via cookies.  LibWeb::Admin and LibWeb::Session use LibWeb::Crypt::generate_MAC()
-to generate MACs.  LibWeb::Crypt::generate_MAC() uses Digest::HMAC and uses either
-Digest::MD5 or Digest::SHA1 as the digest algorithm.
-
 =head2 METHODS
-
-B<generate_MAC()>
-
-Params:
-
-  -data=>, -key=>, -algorithm=>, -format=>
-
-Pre:
-
-=over 2
-
-=item *
-
--data is the data from which the MAC is to be generated,
-
-=item *
-
--key is the private key such that the MAC generated is unique to that key
-(sorry, I do not have a rigorous definition for that right now),
-
-=item *
-
--algorithm must be either 'Digest::MD5' or 'Digest::SHA1',
-
-=item *
-
--format is the format of the generated MAC, which must be 'binary', 'hex' or
-'b64'.
-
-=back
-
-Post:
-
-=over 2
-
-=item *
-
-Generate a MAC and return it.
-
-=back
-
-B<generate_digest()>
-
-Params:
-
-  -data=>, -key=>, -algorithm=>, -format=>
-
-Pre:
-
-=over 2
-
-=item *
-
--data is the data from which the digest is to be generated,
-
-=item *
-
--key is the private key such that the digest generated is unique to that key
-(sorry, I do not have a rigorous definition for that right now),
-
-=item *
-
--algorithm must be either 'Digest::MD5' or 'Digest::SHA1',
-
-=item *
-
--format is the format of the digest, which must be 'binary', 'hex' or 'b64'.
-
-=back
-
-Post:
-
-=over 2
-
-=item *
-
-Generate a digest and return it.
-
-=back
 
 B<encrypt_cipher()>
 
@@ -430,20 +221,23 @@ Pre:
 
 =item *
 
--data is the data to be encrypted as cipher,
+C<-data> is the data to be encrypted as cipher,
 
 =item *
 
--key is the private key such the same key is needed to decrypt the cipher
-(sorry, I do not have a rigorous definition for that right now),
+C<-key> is the private key such the same key is needed to decrypt the
+cipher (sorry, I do not have a rigorous definition for that right
+now),
 
 =item *
 
--algorithm must be 'Crypt::Blowfish', 'Crypt::DES' or 'Crypt::IDEA',
+C<-algorithm> must be 'Crypt::Blowfish', 'Crypt::DES' or
+'Crypt::IDEA',
 
 =item *
 
--format is the format of the cipher, which must be either 'binary' or 'hex'.
+C<-format> is the format of the cipher, which must be either 'binary'
+or 'hex'.
 
 =back
 
@@ -453,12 +247,12 @@ Post:
 
 =item *
 
-Encrypt -data and return the cipher.
+Encrypt C<-data> and return the cipher.
 
 =back
 
-Note: this makes use of the Crypt::CBC module and therefore can accept data
-of arbitrary length.
+Note: this makes use of the Crypt::CBC module and therefore can accept
+data of arbitrary length.
 
 B<decrypt_cipher()>
 
@@ -472,22 +266,23 @@ Pre:
 
 =item *
 
--cipher is the cipher to be decrypted,
+C<-cipher> is the cipher to be decrypted,
 
 =item *
 
--key is the private key such that it is the same key used to encrypt the
-original data of -cipher (sorry, I do not have a rigorous definition for
-that right now),
+C<-key> is the private key such that it is the same key used to
+encrypt the original data of C<-cipher> (sorry, I do not have a
+rigorous definition for that right now),
 
 =item *
 
--algorithm must be 'Crypt::Blowfish', 'Crypt::DES' or 'Crypt::IDEA' and
-it must match the algorithm used when preparing the cipher,
+C<-algorithm> must be 'Crypt::Blowfish', 'Crypt::DES' or 'Crypt::IDEA'
+and it must match the algorithm used when preparing the cipher,
 
 =item *
 
--format is the format of the cipher, which must be either 'binary' or 'hex'.
+C<-format> is the format of the cipher, which must be either 'binary'
+or 'hex'.
 
 =back
 
@@ -497,7 +292,7 @@ Post:
 
 =item *
 
-Decrypt -cipher and return the original data.
+Decrypt C<-cipher> and return the original data.
 
 =back
 
@@ -508,8 +303,8 @@ Usage:
   my $encrypted_password =
       $crypt->encrypt_password($password_in_plain_text);
 
-Encrypts the parameter (usually a password) and returns a 13-character long
-string using the perl's crypt() routine and randomly chosen salt.
+Encrypts the parameter (usually a password) and returns a 13-character
+long string using the perl's crypt() routine and randomly chosen salt.
 
 =head1 AUTHORS
 
@@ -521,6 +316,11 @@ string using the perl's crypt() routine and randomly chosen salt.
 
 =head1 CREDITS
 
+=over 2
+
+=item Lincoln Stein (lstein@cshl.org)
+
+=back
 
 =head1 BUGS
 
@@ -528,7 +328,8 @@ string using the perl's crypt() routine and randomly chosen salt.
 =head1 SEE ALSO
 
 
-L<Digest::HMAC>, L<Digest::SHA1>, L<Digest::MD5>, L<Crypt::CBC>, L<Crypt::Blowfish>,
-L<Crypt::DES>, L<Crypt::IDEA>, L<LibWeb::Admin>, L<LibWeb::Session>.
+L<Digest::HMAC>, L<Digest::SHA1>, L<Digest::MD5>, L<Crypt::CBC>,
+L<Crypt::Blowfish>, L<Crypt::DES>, L<Crypt::IDEA>, L<LibWeb::Admin>,
+L<LibWeb::Digest>, L<LibWeb::Session>.
 
 =cut

@@ -1,6 +1,5 @@
 #==============================================================================
-# LibWeb::File -- a component of LibWeb--a Perl library/toolkit for building
-#                 World Wide Web applications.
+# LibWeb::File -- File manipulations for libweb applications.
 
 package LibWeb::File;
 
@@ -21,20 +20,29 @@ package LibWeb::File;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release. 
+# $Id: File.pm,v 1.4 2000/07/18 06:33:30 ckyc Exp $
 
+#-##############################
 # Use standard library.
 use Carp;
 use strict;
 use vars qw($VERSION @ISA);
 require FileHandle;
 
+#-##############################
 # Use custom library.
 require LibWeb::Class;
 
-$VERSION = '0.01';
+#-##############################
+# Version.
+$VERSION = '0.02';
+
+#-##############################
+# Inheritance.
 @ISA = qw(LibWeb::Class);
 
+#-##############################
+# Methods.
 sub new {
     my($class, $Class, $self); 
     $class = shift;
@@ -55,11 +63,11 @@ sub read_lines_from_file {
     $self = shift;
     ($file) = $self->rearrange(['FILE'], @_);
 
-    $fh = new FileHandle($file) ||
-      croak "LibWeb::File::read_lines_from_file() error (the file is $file): $@" if $@;
+    $fh = FileHandle->new($file) or
+      croak "LibWeb::File::read_lines_from_file() error (the file is $file): $!";
 
-    @lines = $fh->getlines() ||
-      croak "LibWeb::File::read_lines_from_file() error (the file is $file): $@" if $@;
+    @lines = $fh->getlines() or
+      croak "LibWeb::File::read_lines_from_file() error (the file is $file): $!";
 
     $fh->close();
     return \@lines;
@@ -99,11 +107,9 @@ sub write_lines_to_file {
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::File - FILE MANIPULATIONS FOR LIBWEB APPLICATIONS
+LibWeb::File - File manipulations for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -152,13 +158,11 @@ This class provides several methods to manipulate text files.
 The current version of LibWe LibWeb::File is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
-Several LibWeb applications (LEAPs) have be written, released and
-are available at
+Several LibWeb applications (LEAPs) have be written, released and are
+available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 DESCRIPTION
 
@@ -170,7 +174,7 @@ Params:
 
   -file =>
 
-Open, read all lines, close the file and return the lines in an ARRAY
+Open, read all lines, close C<-file> and return the lines in an ARRAY
 reference.
 
 B<write_lines_to_file()>
@@ -185,7 +189,7 @@ Pre:
 
 =item *
 
--lines is an ARRAY reference to lines which are scalars.
+C<-lines> is an ARRAY reference to lines which are scalars.
 
 =back
 
@@ -195,7 +199,7 @@ Post:
 
 =item *
 
-Overwrite the file with the lines.
+Overwrite C<-file> with the lines.
 
 =back
 

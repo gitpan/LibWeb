@@ -1,6 +1,6 @@
 #==============================================================================
-# LibWeb::HTML::Error -- a component of LibWeb--a Perl library/toolkit for
-#                        building World Wide Web applications.
+# LibWeb::HTML::Error -- Displaying error messages (`stderr') in html for libweb
+#                        applications.
 
 package LibWeb::HTML::Error;
 
@@ -21,6 +21,10 @@ package LibWeb::HTML::Error;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
+# $Id: Error.pm,v 1.6 2000/07/19 20:31:57 ckyc Exp $
+
+$VERSION = '0.02';
+
 # Contains site's common help instructions for users when error occurs.
 # Please DO NOT make this a subclass of any class in the LibWeb package
 # since it will generate infinite loop at initialization due to the fact
@@ -28,15 +32,15 @@ package LibWeb::HTML::Error;
 # statement in this class to use any LibWeb classes.  Same reason applies.
 # Any idea of how to improve this?
 
-# For debugging purposes.  Should be commented out in production release.
-
+#-##############################
 # Use standard libraries.
 use SelfLoader;
+use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = '0.01';
-
+#-##############################
+# Methods.
 sub new {
     #
     # You don't use or ISA this class directly.  Use or ISA
@@ -72,17 +76,23 @@ sub display_error {
     # All other parameters are scalars except $help_msg which must be a
     # SCALAR ref.
     #
-    my ($caller, $error_msg, $error_input, $help_msg);
+    my ($caller, $error_msg, $error_input, $err_input_display, $help_msg);
     shift;
     $caller = shift;
     ($error_msg, $error_input, $help_msg) = @_;
+    croak "-helpMsg must be a SCALAR reference."
+      unless ( ref($help_msg) eq 'SCALAR' );
+    $err_input_display = ($error_input ne ' ') ?
+                         "<b><big>The erroneous input:</big></b>".
+                         "<p><font color=\"red\">$error_input</font>" : 
+			 ' ';
 
 return \<<HTML;
 <html><head><title>$caller->{SITE_NAME}</title>
 <link rel="stylesheet" href="$caller->{CSS}"></head>
 <body bgcolor="$caller->{SITE_BG_COLOR}" text="$caller->{SITE_TXT_COLOR}">
 <center>
-<a href="/"><img src="$caller->{SITE_LOGO_BG}" border="0" alt="$caller->{SITE_NAME}"></a>
+<a href="/"><img src="$caller->{SITE_LOGO}" border="0" alt="$caller->{SITE_NAME}"></a>
 <table border=0 cellpadding=0 cellspacing=0 width="65%" bgcolor="$caller->{SITE_BG_COLOR}">
 
 <Tr><td>
@@ -97,19 +107,17 @@ return \<<HTML;
 
 <Tr><td>
 <table border=0 cellpadding=7 cellspacing=0 width="100%" bgcolor="$caller->{SITE_BG_COLOR}"><Tr><td>
-<p>The following error has occurred:
-<p><center>$error_msg</center>
-<p>The erroneous input:
-<p><center><font color="red">$error_input</font></center>
-<p>Suggested help:
+<p><b><big>The following error has occurred:</big></b>
+<p>$error_msg
+<p>$err_input_display
+<p><b><big>Suggested help:</big></b>
 <p>$$help_msg
-
 </td></Tr></table>
 </td></Tr>
 
 </table><br>
 <table border=0 width="60%"><Tr><td align="center"><hr size=1>
-<a href="$caller->{COPYRIGHT}">Copyright</a>&nbsp;&copy;&nbsp;$caller->{SITE_YEAR}&nbsp;$caller->{SITE_NAME}.  All rights reserved.<br>
+Copyright&nbsp;&copy;&nbsp;$caller->{SITE_YEAR}&nbsp;$caller->{SITE_NAME}.  All rights reserved.<br>
 <a href="$caller->{TOS}">Terms of Service.</a> &nbsp;
 <a href="$caller->{PRIVACY_POLICY}">Privacy Policy.</a>
 </td></Tr></table></center>
@@ -279,11 +287,10 @@ HTML
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::HTML::Error - DISPLAYING ERROR MESSAGES IN HTML FOR LIBWEB APPLICATIONS
+LibWeb::HTML::Error - Displaying error messages in html for libweb
+applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -326,13 +333,11 @@ Several basic error messages are also defined.
 The current version of LibWeb::HTML::Error is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
 Several LibWeb applications (LEAPs) have be written, released and
 are available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 DESCRIPTION
 
@@ -342,7 +347,11 @@ B<display_error()>
 
 Params:
 
-  caller, error_msg, error_input, help_msg
+=over 2
+
+=item I<caller>, I<error_msg>, I<error_input>, I<help_msg>
+
+=back
 
 Pre:
 
@@ -350,8 +359,8 @@ Pre:
 
 =item *
 
-caller is a reference to the calling object.  All other parameters
-are scalars except help_msg which must be a SCALAR reference.
+I<caller> is a reference to the calling object.  All other parameters
+are scalars except I<help_msg> which must be a SCALAR reference.
 
 =back
 
@@ -371,7 +380,8 @@ NOTE:
 Do not call this method directly, call LibWeb::Core::fatal() instead.
 See L<LibWeb::Core> for details.
 
-All of the following methods return a SCALAR reference to an error message in HTML.
+All of the following methods return a SCALAR reference to an error
+message in HTML.
 
 B<mysterious_error()>
 
@@ -409,6 +419,6 @@ B<cookie_error()>
 
 =head1 SEE ALSO
 
-L<LibWeb::Core>, L<LibWeb::HTML::Default>.
+L<LibWeb::Core>, L<LibWeb::HTML::Standard>, L<LibWeb::HTML::Default>.
 
 =cut

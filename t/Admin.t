@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: Admin.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -60,8 +63,8 @@ sub test {
 
 # test_LibWeb_Admin
 eval "use LibWeb::Admin";
-test(1, !$@, 'Could not load LibWeb::Admin module.');
+test(1, !$@, "Could not load LibWeb::Admin module.  $@");
     
 my $admin;
 eval { $admin = LibWeb::Admin->new( $rc ); };
-test(2, !$@, 'LibWeb::Admin cannot be instantiated.');
+test(2, !$@, "LibWeb::Admin cannot be instantiated.  $@");

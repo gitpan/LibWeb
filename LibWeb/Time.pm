@@ -1,6 +1,5 @@
 #==============================================================================
-# LibWeb::Time -- a component of LibWeb--a Perl library/toolkit for building
-#                 World Wide Web applications.
+# LibWeb::Time -- Various time formats for libweb applications
 
 package LibWeb::Time;
 
@@ -21,14 +20,17 @@ package LibWeb::Time;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release. 
+# $Id: Time.pm,v 1.4 2000/07/19 20:31:57 ckyc Exp $
 
+$VERSION = '0.02';
+
+#-##########################
 # Use standard library.
 use strict;
 use vars qw($VERSION);
 
-$VERSION = '0.01';
-
+#-##########################
+# Methods.
 sub new {
     my($class, $self); 
     $class = shift;
@@ -37,10 +39,10 @@ sub new {
     my $month = $mon + 1;
     my $month_day = $mday;
     $self = {
-	     'sec' => $sec,
-	     'min' => $min,
-	     'hour' => $hour,
-	     'mday' => $mday,
+	     'sec' => ($sec < 10) ? "0$sec" : $sec,
+	     'min' => ($min < 10) ? "0$min" : $min,
+	     'hour' => ($hour < 10) ? "0$hour" : $hour,
+	     'mday' => ($mday < 10) ? "0$mday" : $mday,
 	     'month' =>  ($month < 10) ? "0$month" : $month, 
 	     'month_day' => ($month_day < 10) ? "0$month_day" : $month_day,
 	     'mon' => ('Jan','Feb','March','April','May','June','July','Aug','Sep','Oct','Nov','Dec')[$mon],
@@ -85,11 +87,9 @@ sub get_year {
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::Time - DIFFERENT TIME FORMATS FOR LIBWEB APPLICATIONS
+LibWeb::Time - Various time formats for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -142,13 +142,11 @@ methods which return time in several formats.
 The current version of LibWeb::Time is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
 Several LibWeb applications (LEAPs) have be written, released and
 are available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 DESCRIPTION
 
@@ -164,8 +162,9 @@ Return 'hh:mm:ss' as a string, e.g. '14:35:47'.
 
 B<get_datetime()>
 
-Return 'wday mon dd hh:mm:ss yyyy' as a string, e.g. 'Sun May 28 14:35:47 2000'.
-This is the same as using the perl's localtime() directly in scalar context.
+Return 'wday mon dd hh:mm:ss yyyy' as a string, e.g. 'Sun May 28
+14:35:47 2000'.  This is the same as using the perl's localtime()
+directly in scalar context.
 
 B<get_timestamp()>
 

@@ -1,6 +1,5 @@
 #==============================================================================
-# LibWeb::Core -- a component of LibWeb--a Perl library/toolkit for building
-#                 World Wide Web applications.
+# LibWeb::Core -- The core class for libweb modules.
 
 package LibWeb::Core;
 
@@ -21,19 +20,33 @@ package LibWeb::Core;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release. 
+# $Id: Core.pm,v 1.5 2000/07/18 06:33:30 ckyc Exp $
 
+#-###############################
 # Use standard library.
 use SelfLoader;
+use Carp;
 use strict;
 use vars qw($VERSION @ISA %RC $OS);
+##require Config
 
+#-###############################
 # Use custom library.
 require LibWeb::Class;
+##require LibWeb::HTML::Error;
+##require LibWeb::Crypt;
+##require Mail::Sendmail;
 
-$VERSION = '0.01';
+#-###############################
+# Version.
+$VERSION = '0.02';
+
+#-###############################
+# Inheritance.
 @ISA = qw(LibWeb::Class);
 
+#-###############################
+# Methods.
 sub new {
     #
     # Params: $class [, $rc_file, $error_object]
@@ -57,8 +70,10 @@ sub new {
 	%rc = %RC;
 	bless(\%rc, ref($class) || $class);
     } else {
-	$self = do "$_[0]" or die "Couldn't read rc: $!\n";
-	$self->{HHTML} = $_[1] or do { require LibWeb::HTML::Error; LibWeb::HTML::Error->new(); };
+	eval { $self = do "$_[0]"; };
+	croak "Couldn't read rc: $@\n" if ($@);
+	$self->{HHTML} = $_[1] || eval { require LibWeb::HTML::Error; LibWeb::HTML::Error->new(); };
+	croak "LibWeb::Core::new(): No HTML Error object detected!" unless $self->{HHTML};
 	_make_portable($self);
 	%RC = %{ $self };
 	bless($self, ref($class) || $class);
@@ -96,8 +111,9 @@ sub _make_portable {
     } else {
 	$OS = 'UNIX';
     }
+    $self->{OS} = $OS;
     # The path separator is a slash, backslash or semicolon, depending
-    # on the paltform.
+    # on the platform.
     $self->{PATH_SEP} = {
 			 UNIX=>'/', OS2=>'\\', WINDOWS=>'\\', DOS=>'\\',
 			 MACINTOSH=>':', VMS=>'/'
@@ -120,6 +136,7 @@ sub _make_portable {
 
 # Selfloading methods declaration.
 sub LibWeb::Core::_get_auth_info_from_cookie_for_admin ;
+sub LibWeb::Core::_log_fatal ;
 sub LibWeb::Core::alert_admin ;
 sub LibWeb::Core::debug_print ;
 sub LibWeb::Core::fatal ;
@@ -166,6 +183,37 @@ sub _get_auth_info_from_cookie_for_admin {
     return undef;
 }
 
+sub _log_fatal {
+    #
+    # Params: _log_message_
+    #
+    # Pre:
+    # *  _log_message_ is a SCALAR reference to the log message.
+    # * rc:FATAL_LOG must be defined.
+    #
+    # Post:
+    #
+    # * if FATAL_LOG does not exist, create that file; otherwise, append
+    #   _log_message_ to that file.
+    #
+    my $self = shift;
+    return unless $self->{FATAL_LOG};
+    # Create/open the log file for appending the log message.
+    # Make perl taint mode happy.
+    $self->{FATAL_LOG} =~ m:([^;]*):;
+    open(LOG, ">> $1") or croak
+      "LibWeb::Core::_log_fatal(): Couldn't create $self->{FATAL_LOG} for logging: $!\n";
+
+    # Append the log message.
+    print LOG "${$_[0]}";
+
+    # Close the log file.
+    close(LOG) or croak
+      "LibWeb::Core::_log_fatal(): Couldn't close $self->{FATAL_LOG}: $!\n";
+
+    return undef;
+}
+
 sub alert_admin {
     #
     # Arg: (-msg=>)
@@ -173,19 +221,23 @@ sub alert_admin {
     # Pre:
     # - -msg must be a SCALAR ref.
     #
-    # Post: Send admin an email indicating what errors have occured.
+    # Post: Send admin an email indicating what errors have occurred.
     #
     my ($self, $crypt, $env_key, $env_value, $pack, $file, $line, $subname,
 	$hashargs, $wantarray, $evaltext, $is_require, $i, $msg, $message,
 	$expireTime, $user, $uid, $cryptExpireTime, $cryptUser, $cryptUID);
     $self = shift;
     ($msg) = $self->rearrange(['MSG'], @_);
-    require LibWeb::Crypt;
-    $crypt = LibWeb::Crypt->new();
+
+    eval {
+	# Since sever may not have Crypt::CBC installed.
+	require LibWeb::Crypt;
+	$crypt = LibWeb::Crypt->new();
+    };
     # Fetch user info from auth Cookies if any.
     ($expireTime, $user, $uid) = ('N/A', 'N/A', 'N/A');
     ($cryptExpireTime, $cryptUser, $cryptUID)
-      = $self -> _get_auth_info_from_cookie_for_admin();
+      = $self->_get_auth_info_from_cookie_for_admin();
     $uid = $crypt->decrypt_cipher(
 				  -cipher => $cryptUID,
 				  -key => $self->{CIPHER_KEY},
@@ -211,7 +263,8 @@ sub alert_admin {
 	       )
 	if defined($cryptExpireTime);
     $message =
-      "\n\nCookies info grabbing: \nUsername: $user \nUID: $uid \nExpire: $expireTime\n";
+      "\n\nCurrent time:\t".localtime().
+	"\n\nCookies info grabbing:\nUsername:\t$user\nUID:\t$uid\nExpire:\t$expireTime\n";
     # Generate stack traces.
     $i = 0;
     while (($pack,$file,$line,$subname,$hashargs,
@@ -226,25 +279,27 @@ sub alert_admin {
 	$message .= "Evaltext: $evaltext\n" if defined $evaltext;
 	$message .= "Is_require: $is_require\n" if defined $is_require;
     }
-    $message .= "\n\n\n";
+    $message .= "\n\n";
     # Fetch Web client and server info.
     while (($env_key,$env_value) = each (%ENV)) {
 	$message .= "$env_key: $env_value\n";
     }
-    # Just print the error message and return immediately; i.e. don't send mail
-    # while debugging.
+    $message .= "\n\n===============================================================";
+    # Log that alert/fatal message.
+    $self->_log_fatal( \ ( $$msg . $message ) )
+      if ( $self->{FATAL_LOG} );
+    # Alert the admin by sending her/him an email.
+    $self->send_mail( -to => $self->{ADMIN_EMAIL},
+		      -from => $self->{ADMIN_EMAIL},
+		      -subject => "$self->{SITE_NAME} Server Alert!",
+		      -msg => \ ( $$msg . $message ) )
+      if ( $self->{IS_MAIL_DEBUG_TO_ADMIN} );
+    # Print the error+debug message while debugging.
     if ( $self->{DEBUG} ) {
 	print "Content-Type: text/html$self->{CRLF}$self->{CRLF}"
 	  if $ENV{GATEWAY_INTERFACE};
 	print $$msg . $message;
-	return undef;
     }
-    # Alert the admin by sending him/her an email.
-    $self->send_mail( -to => $self->{ADMIN_EMAIL},
-		      -from => $self->{ADMIN_EMAIL},
-		      -subject => 'Server Alert!',
-		      -msg => \ ( $$msg . $message ) )
-      if ( $self->{IS_MAIL_DEBUG_TO_ADMIN} );
     return undef;
 }
 
@@ -315,7 +370,7 @@ sub sanitize {
     # Sanitizes Web client inputs.
     #
     # Params: (-text=>'plain_text' || -html=>'html_text' || -email=>'email_here'
-    #        [, -allow=>[charaters allowed] ).
+    #        [, -allow=>[characters allowed] ).
     #
     # -text/-html/-email is a scalar or an ARRAY ref. to scalars.
     # -allow is an ARRAY ref. to special characters allowed.  It's effective
@@ -323,7 +378,7 @@ sub sanitize {
     # Array is returned if want array.
     #
     # -text: sanitize text by removing all meta characters.
-    # -html: sanitize text by rmoving html <> tags.
+    # -html: sanitize text by removing html <> tags.
     # -email: sanitize email addresses.  Print an error message and
     #         abort the program if email is dirty.
     # Can only process one type at a time (i.e. per subroutine call).
@@ -385,14 +440,14 @@ sub sanitize {
 	    return $text;
 	}
     }
-    # User input (e-mail address) santitizing.
+    # User input (e-mail address) sanitizing.
     # Possible (alternative) regex: :^([\w.+-]+)\@([\w.+-]+)$:
     if (ref($emails)) {
 	foreach (@$emails) {
 	    unless ($emails->[$count]=~ s:(\w{1}[\w-.]*)\@([\w-.]+):$1\@$2:) {
 		#$emails->[$count] =~ s:([$meta]):\\$1:g;
 		$self->fatal(
-			     -msg => 'Invalid e-maill address format',
+			     -msg => 'Invalid e-mail address format',
 			     -input => $emails->[$count],
 			     -helpMsg => $self->{HHTML}->hit_back_and_edit()
 			    );
@@ -404,7 +459,7 @@ sub sanitize {
 	unless ($emails =~ s:(\w{1}[\w-.]*)\@([\w-.]+):$1\@$2:) {
 	    #$emails =~ s:([$meta]):\\$1:g;
 	    $self->fatal(
-			 -msg => 'Invalid e-maill address format',
+			 -msg => 'Invalid e-mail address format',
 			 -input => $emails,
 			 -helpMsg => $self->{HHTML}->hit_back_and_edit()
 			);
@@ -428,7 +483,7 @@ sub send_cookie {
     # 1. No other HTTP header should be sent before this in a single CGI session.
     #
     # Post:
-    # 1.Send the cookie to clent Web browser.
+    # 1.Send the cookie to client Web browser.
     #
     my ($self, $cookies);
     $self = shift;
@@ -444,47 +499,82 @@ sub send_cookie {
 
 sub send_mail {
     #
-    # Params: (-to [,-bcc] ,-from [,-replyTo] ,-subject, -msg)
+    # Params:
+    #
+    # -to=>, -from=>, -subject=>, -msg=>
+    # [, -replyTo=>, -cc=>, -bcc=>, -smtp=> ]
     #
     # Pre: -msg is a SCALAR ref. and others are scalars.
     #
-    my ($self, $to, $bcc, $from, $replyTo, $subject, $message, $pipe_status);
+    my ($self, $to, $from, $subject, $message, $replyTo, $cc, $bcc, $smtp,
+	$pipe_status);
     $self = shift;
-    ($to, $bcc, $from, $replyTo, $subject, $message) =
-      $self->rearrange(['TO', 'BCC', 'FROM', 'REPLYTO', 'SUBJECT', 'MSG'], @_);
+    ($to, $from, $subject, $message, $replyTo, $cc, $bcc, $smtp)
+      = $self->rearrange(
+			 ['TO','FROM','SUBJECT','MSG','REPLYTO','CC','BCC','SMTP'],
+			 @_
+			);
+
+    ## Try Mail::Sendmail first.
+    eval {
+	require Mail::Sendmail;
+	unshift @{$Mail::Sendmail::mailcfg{'smtp'}}, $smtp||@{$self->{SMTP}};
+	my %mail = (
+		    'To' => $to || undef,
+		    'From' => $from || undef,
+		    'Subject' => $subject || undef,
+		    'Message' => ${$message} || undef,
+		    'Reply-to' => $replyTo || undef,
+		    'Cc' => $cc || undef,
+		    'Bcc' => $bcc || undef,
+		    'X-Mailer' => 'LibWeb Powered Sendmail'
+		   );
+	Mail::Sendmail::sendmail(%mail);
+    };
+    $self->_log_fatal( \("\n$@\n") ) if ( $@ && $self->{FATAL_LOG} );
+    return unless $@;
+
+    ## Resort to primitive unix sendmail if Mail::Sendmail is not installed.
     $pipe_status = open(MAIL, "|-");
     $self->fatal(-msg => 'Error: couldn\'t send mail',
-		 -alertMsg => 'Cannot open to subprocess')
-      unless defined($pipe_status);
+		 -alertMsg =>
+		 "LibWeb::Core::send_mail: Could not open to subprocess: $!",
+		 -isDisplay => 0,
+		 -isAlert => 0) unless defined($pipe_status);
     # Makes perl taint mode happy.  $1 is $self->{MAIL_PROGRAM} in disguise.
-    $self->{MAIL_PROGRAM} =~ m:(.*):;
+    $self->{MAIL_PROGRAM} =~ m:([^;]*):;
     exec "$1"
       or $self->fatal(-msg=>'Error: couldn\'t send mail',
-		      -alertMsg => 'exec error') if ($pipe_status == 0);
+		      -alertMsg => "LibWeb::Core::send_mail(): exec error: $!",
+		      -isDisplay => 0,
+		      -isAlert => 0) if ($pipe_status == 0);
     eval {
 	print MAIL "To: $to\n" if defined $to;
+	print MAIL "Cc: $cc\n" if defined $cc;
 	print MAIL "Bcc: $bcc\n" if defined $bcc;
 	print MAIL "From: $from\n" if defined $from;
 	print MAIL "Reply-to: $replyTo\n" if defined $replyTo;
-	print MAIL "X-Mailer: UofTfriends.com Powered Sendmail\n";
+	print MAIL "X-Mailer: LibWeb Powered Sendmail (primitive)\n";
 	defined($subject) ? print MAIL "Subject: $subject\n\n" :
 	                    print MAIL "Subject: (no subject)\n\n";
-	print MAIL "$$message";
+	print MAIL "${$message}";
 	print MAIL "\n.\n";
     };
-    $self->fatal(-msg => 'Error: couldn\'t send mail',
-		 -alertMsg => 'print MAIL error') if $@;
+    $self->fatal(
+		 -msg => 'Error: couldn\'t send mail',
+		 -alertMsg => "LibWeb::Core::send_mail(): print MAIL error: $@",
+		 -isDisplay => 0,
+		 -isAlert => 0
+		) if $@;
     close MAIL;
 }
 
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::Core - THE CORE CLASS FOR LIBWEB MODULES
+LibWeb::Core - The core class for libweb modules
 
 =head1 SUPPORTED PLATFORMS
 
@@ -500,7 +590,15 @@ LibWeb::Core - THE CORE CLASS FOR LIBWEB MODULES
 
 =item *
 
+LibWeb::Crypt
+
+=item *
+
 LibWeb::HTML::Error
+
+=item *
+
+Mail::Sendmail
 
 =back
 
@@ -521,42 +619,43 @@ LibWeb::Class
 
 =head1 ABSTRACT
 
-This class is responsible for reading the LibWeb's rc file, handling portability
-issues, printing error and debug messages and sending alert e-mail to the site
-administrator should error occur.  You are not supposed to use or ISA this class
-directly.  It is ISAed internally by other modules in LibWeb, e.g. LibWeb::Admin,
-LibWeb::CGI, LibWeb::Database, LibWeb::HTML::Default and LibWeb::Themes::Default.
-You should call the methods presented in this man page through one of those
-sub-classes.
+This class is responsible for reading the LibWeb's rc file, handling
+portability issues, printing and logging error and debug messages and
+sending alert e-mail to the site administrator should error occur.
+You are not supposed to use or ISA this class directly.  It is ISAed
+internally by other modules in LibWeb, e.g. LibWeb::Admin,
+LibWeb::CGI, LibWeb::Database, LibWeb::HTML::Default and
+LibWeb::Themes::Default.  You should call the methods presented in
+this man page through one of those sub-classes.
 
 The current version of LibWeb::Core is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
-Several LibWeb applications (LEAPs) have be written, released and
-are available at
+Several LibWeb applications (LEAPs) have be written, released and are
+available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 TYPOGRAPHICAL CONVENTIONS AND TERMINOLOGY
 
-Variables in all-caps (e.g. ADMIN_EMAIL) are those variables set through
-LibWeb's rc file.  `Sanitize' means escaping any illegal character possibly
-entered by user in a HTML form.  This will make Perl's taint mode happy and
-more importantly make your site more secure.  All `error/help messages'
-mentioned can be found at L<LibWeb::HTML::Error> and they can be customized
-by ISA (making a sub-class of) LibWeb::HTML::Default.  Please see
-L<LibWeb::HTML::Default> for details.  Method's parameters in square brackets
-means optional.
+Variables in all-caps (e.g. ADMIN_EMAIL) are those variables set
+through LibWeb's rc file.  `Sanitize' means escaping any illegal
+character possibly entered by user in a HTML form.  This will make
+Perl's taint mode happy and more importantly make your site more
+secure.  All `error/help messages' mentioned can be found at
+L<LibWeb::HTML::Error> and they can be customized by ISA (making a
+sub-class of) LibWeb::HTML::Default.  Please see
+L<LibWeb::HTML::Default> for details.  Method's parameters in square
+brackets means optional.
 
 =head1 DESCRIPTION
 
 =head2 READING THE LIBWEB RC FILE
 
-You should place your LibWeb rc (config) file outside your WWW document root.
-The following shows how a cgi script using LibWeb will typically look like,
+You should place your LibWeb rc (config) file outside your WWW
+document root.  The following shows how a cgi script using LibWeb will
+typically look like,
 
   use LibWeb::Session;
   use LibWeb::Database;
@@ -564,7 +663,7 @@ The following shows how a cgi script using LibWeb will typically look like,
   use LibWeb::Themes::Default;
   use LibWeb::HTML::Default;
 
-  my $rc_file = '/usr/me/.lwrc';
+  my $rc_file = '/home/me/dot_lwrc';
 
   my $html = new LibWeb::HTML::Default($rc_file);
   my $themes = new LibWeb::Themes::Default();
@@ -574,17 +673,22 @@ The following shows how a cgi script using LibWeb will typically look like,
 
   ...
 
-It is recommended that you pass the absolute path of LibWeb's rc file to
-LibWeb::HTML::Default and make it the *first* LibWeb object initialized.
-This will ensure other LibWeb objects can ``see'' the rc file and be
-initialized properly.  However, LibWeb::Admin, LibWeb::CGI, LibWeb::Database,
-LibWeb::Themes::Default, and LibWeb::Session all can take $rc_file as the
-argument to their B<new()> methods (constructor).  You will never need this
-unless you do not want LibWeb::HTML::Default to manage HTML page display for
-you.  You still do *not* need this even if you have ISAed LibWeb::HTML::Default.
-The reason to ISA LibWeb::HTML::Default is to customize the normal and error
-HTML page display and error messages built into LibWeb.  If you have ISAed
-LibWeb::HTML::Default, you just have to replace the following two lines,
+It is recommended that you pass the absolute path of LibWeb's rc file
+to LibWeb::HTML::Default and make it the *first* LibWeb object
+initialized.  This will ensure other LibWeb objects can ``see'' the rc
+file and be initialized properly.
+
+However, LibWeb::Admin, LibWeb::CGI, LibWeb::Database,
+LibWeb::Themes::Default, and LibWeb::Session all can take $rc_file as
+the argument to their B<new()> methods (constructor).  You will never
+need this unless you do not want LibWeb::HTML::Default to manage HTML
+page display for you.
+
+You still do *not* need this even if you have ISAed
+LibWeb::HTML::Default.  The reason to ISA LibWeb::HTML::Default is to
+customize the normal and error HTML page display and error messages
+built into LibWeb.  If you have ISAed LibWeb::HTML::Default, you just
+have to replace the following two lines,
 
   use LibWeb::HTML::Default;
   my $html = new LibWeb::HTML::Default($rc_file);
@@ -594,21 +698,23 @@ with
   use MyHTML;
   my $html = new MyHTML($rc_file);
 
-where MyHTML is your class which ISAs LibWeb::HTML::Default.  Please read
-L<LibWeb::HTML::Default> for details.  A sample rc file has been included
-in the ./eg directory.  If you could not find it, please go to
-http:://libweb.sourceforge.net and download a standard LibWeb distribution.
+where MyHTML is your class which ISAs LibWeb::HTML::Default.  Please
+read L<LibWeb::HTML::Default> for details.  A sample rc file has been
+included in the ./eg directory.  If you could not find it, please go
+to http:://libweb.sourceforge.net and download a standard LibWeb
+distribution.
 
 =head2 SANITY -- REMOVING ILLEGAL CHARACTERS ENTERED BY USERS
 
-LibWeb::Core provides B<sanitize()> method to escape illegal characters
-entered by users in HTML forms.  LibWeb's definition of illegal characters
-is as follows,
+LibWeb::Core provides B<sanitize()> method to escape illegal
+characters entered by users in HTML forms.  LibWeb's definition of
+illegal characters is as follows,
 
   `~!@#$%^&*,.:;?"'<>{}[]()\|/-_+=\a\n\r\t\f\e\b
 
-B<sanitize()> also has the ability to escape HTML tags and detect dirty
-e-mail addresses (format).  Please see below for details on B<sanitize()>.
+B<sanitize()> also has the ability to escape HTML tags and detect
+dirty e-mail addresses (format).  Please see below for details on
+B<sanitize()>.
 
 =head2 METHODS
 
@@ -616,27 +722,28 @@ B<new()>
 
 Params:
 
-  $class [, $rc_file, $error_object]
+I<class> [, I<rc_file>, I<error_object>]
 
 Usage:
 
-  No, you do not call LibWeb::Core::new() directly in client codes.
+  No, you do not call LibWeb::Core::new()
+  directly in client codes.
 
 =over 2
 
 =item *
 
-$class is the class/package name of this package, be it a string or a
-reference.
+I<class> is the class/package name of this package, be it a string or
+a reference.
 
 =item *
 
-$rc_file is the absolute path to the rc file for LibWeb.
+I<rc_file> is the absolute path to the rc file for LibWeb.
 
 =item *
 
-$error_object is a reference to a perl object for printing out error/help
-message to users should error occur.
+I<error_object> is a reference to a perl object for printing out
+error/help message to users should error occur.
 
 =back
 
@@ -644,13 +751,14 @@ B<debug_print()>
 
 Usage:
 
-  debug_print($debug_msg);
+  debug_print('you debug message');
 
 =over 2
 
 =item *
 
-If `DEBUG' == 1, print $debug_msg and return undef.  Do nothing otherwise.
+If `DEBUG' == 1, print I<debug_msg> and return undef.  Do nothing
+otherwise.
 
 =back
 
@@ -658,20 +766,21 @@ B<fatal()>
 
 Params:
 
-  -msg [, -input=>, -helpMsg=>, -alertMsg=>, -isAlert=>,
-          -isDisplay=>, -ccokie=> ]
+  -msg [, -input=>, -helpMsg=>, -alertMsg=>,
+          -isAlert=>, -isDisplay=>, -cookie=> ]
 
 Usage:
 
   fatal(
          -msg => 'You have not entered your password.',
-         -alertMSg => "$user did not enter password!",
+         -alertMsg => "$user did not enter password!",
          -helpMsg => \('Please hit back and edit.')
        );
 
 
   fatal(
-         -alertMsg => 'Possible denial of service attack detected!',
+         -alertMsg =>
+         'Possible denial of service attack detected!',
          -isDisplay => 0
        );
 
@@ -681,16 +790,18 @@ Pre:
 
 =item *
 
--msg, -input, -alertMsg must be scalar and -helpMsg must be a SCALAR
-reference.  -cookie can be a scalar or an ARRAY reference to scalars,
+C<-msg>, C<-input>, C<-alertMsg> must be scalar and C<-helpMsg> must
+be a SCALAR reference.  C<-cookie> can be a scalar or an ARRAY
+reference to scalars,
 
 =item *
 
--input is the user input that triggers this fatal error,
+C<-input> is the user input that triggers this fatal error,
 
 =item *
 
--helpMsg is any instruction to guide the remote user, which can be HTML,
+C<-helpMsg> is any instruction to guide the remote user, which can be
+HTML,
 
 =back
 
@@ -700,23 +811,30 @@ Post:
 
 =item *
 
-Send -cookie and print an error message to Web client if `isDisplay' is
-defined and is equal to 1 (default),
+Send C<-cookie>, print C<-msg>, C<-input> and C<-helpMsg> to the
+viewing web browser and abort the current running program if
+C<-isDisplay> is defined and is equal to 1 (default),
 
 =item *
 
-send an alert e-mail to ADMIN_EMAIL if `isAlert' is defined and is equal
-to 1 (default),
+if C<-isAlert> is defined and is equal to 1 (default),
+
+=over 4
 
 =item *
 
-abort the current running program unless -isDisplay is defined and equal
-to 0.
+append C<-alertMsg> to `FATAL_LOG' if `FATAL_LOG' is defined,
 
 =item *
 
--alertMsg will not be displayed to client web browser but will appear in
-the e-mail sent to ADMIN_EMAIL.
+send an alert e-mail, with C<-alertMsg> as the message body, to
+`ADMIN_EMAIL' if `IS_MAIL_DEBUG_TO_ADMIN' is 1, and
+
+=item *
+
+print C<-alertMsg> to the viewing web browser if `DEBUG' is 1.
+
+=back
 
 =back
 
@@ -724,8 +842,8 @@ B<sanitize()>: sanitizes Web client inputs
 
 Params:
 
-  -text=>'plain_text' || -html=>'html_text' || -email=>'email_here'
-  [, -allow=>[charaters allowed] ]
+  -text=>'plain_text' || -html=>'html_text' ||
+  -email=>'email_here' [, -allow=>[characters allowed] ]
 
 Usage:
 
@@ -744,12 +862,13 @@ Pre:
 
 =item *
 
--text/-html/-email is a scalar or an ARRAY reference to scalars,
+For C<-text>, C<-html> and C<-email>, each must be a scalar or an
+ARRAY reference to scalars,
 
 =item *
 
--allow is an ARRAY reference to special characters allowed.  It's effective
-only when you use it with -text.
+C<-allow> is an ARRAY reference to special characters allowed.  It's
+effective only when you use it with C<-text>.
 
 =back
 
@@ -759,17 +878,18 @@ Post:
 
 =item *
 
--text: sanitize text by escaping all illegal characters
+C<-text>: sanitize text by escaping all illegal characters
 (`~!@#$%^&*,.:;?"'<>{}[]()\|/-_+=\a\n\r\t\f\e\b),
 
 =item *
 
--html: escape all html <> tags,
+C<-html>: escape all html <> tags,
 
 =item *
 
--email: sanitize email addresses.  Print an error message and abort the
-current running program if email is dirty ( $email !~ m:(\w{1}[\w-.]*)\@([\w-.]+): )
+C<-email>: sanitize email addresses.  Print an error message and abort
+the current running program if email is dirty ( $email !~
+m:(\w{1}[\w-.]*)\@([\w-.]+): )
 
 =item *
 
@@ -777,7 +897,8 @@ array is returned if want array,
 
 =item *
 
-this can only process one type of sanity at a time (i.e. per method call).
+this can only process one type of sanity at a time (i.e. per method
+call).
 
 =back
 
@@ -786,8 +907,10 @@ issues not yet resolved with LibWeb::CGI.
 
 Usage:
 
-  my $cookie1 = 'auth1=0; path=/; expires=Thu, 01-Jan-1970 00:00:01 GMT';
-  my $cookie2 = 'cook2=value; path=/';
+  my $cookie1 =
+    'auth1=0; path=/; expires=Thu, 01-Jan-1970 00:00:01 GMT';
+  my $cookie2 =
+    'cook2=value; path=/';
 
   send_cookie( $cookie1 ); # or
 
@@ -822,7 +945,8 @@ B<send_mail()>
 
 Params:
 
-  -to [,-bcc] ,-from [,-replyTo] ,-subject, -msg
+  -to=>, -from=>, -subject=>, -msg=>
+  [, -replyTo=>, -cc=>, -bcc=>, -smtp=> ]
 
 Pre:
 
@@ -830,7 +954,7 @@ Pre:
 
 =item *
 
--msg must be a SCALAR reference and others must be scalars.
+C<-msg> must be a SCALAR reference and others must be scalars.
 
 =back
 
@@ -840,7 +964,9 @@ Post:
 
 =item *
 
-Send an e-mail to the recipients specified.
+Send an e-mail to the recipients specified.  It will try to use
+Mail::Sendmail and then the primitive unix sendmail if the former
+fails.
 
 =back
 
@@ -858,10 +984,10 @@ Send an e-mail to the recipients specified.
 
 =head1 SEE ALSO
 
-L<LibWeb::Admin>, L<LibWeb::Class>, L<LibWeb::Core>, L<LibWeb::CGI>, L<LibWeb::Crypt>
-L<LibWeb::Database>, L<LibWeb::File>, L<LibWeb::HTML::Error>, L<LibWeb::HTML::Site>,
-L<LibWeb::HTML::Default>, L<LibWeb::Session>, L<LibWeb::Themes::Default>,
-L<LibWeb::Time>.
+L<LibWeb::Admin>, L<LibWeb::Class>, L<LibWeb::Core>, L<LibWeb::CGI>,
+L<LibWeb::Crypt> L<LibWeb::Database>, L<LibWeb::File>,
+L<LibWeb::HTML::Error>, L<LibWeb::HTML::Site>,
+L<LibWeb::HTML::Default>, L<LibWeb::Session>,
+L<LibWeb::Themes::Default>, L<LibWeb::Time>.
 
 =cut
- 

@@ -1,6 +1,8 @@
 -*- README -*-
 
-LibWeb-0.01 - A Perl library/toolkit for building Web applications.
+$Id: README,v 1.9 2000/07/19 20:31:56 ckyc Exp $
+
+LibWeb-0.02 - A Perl library/toolkit for building Web applications.
 
 Copyright (c) 2000 Colin Kong.
 
@@ -12,6 +14,8 @@ See LibWeb::Core, COPYING and LICENSE for usage and distribution rights.
 |--------------------------------------------------------------------|
 |                                                                    |
 |	* Dependencies of libweb                                     |
+|                                                                    |
+|       * Features                                                   |
 |                                                                    |
 |	* Installation                                               |
 |                                                                    |
@@ -32,14 +36,64 @@ DEPENDENCIES OF LIBWEB
 ----------------------
 The following non-standard perl's libraries are required,
 
-* Digest
-* Crypt::CBC
-* Crypt::Blowfish (recommended) or Crypt::DES or Crypt::IDEA
-* DBI and the specific DBD for your database.
 
-You do not need the above mentioned libraries if you plan not to use
-the user/session management and database APIs of LibWeb, namely
-LibWeb::Admin, LibWeb::Crypt, LibWeb::Database and LibWeb::Session.
+* Digest
+
+	http://search.cpan.org/search?dist=Digest-MD5
+
+* Crypt::CBC
+
+	http://search.cpan.org/search?dist=Crypt-CBC
+
+* Crypt::Blowfish (recommended)
+
+	http://search.cpan.org/search?dist=Crypt-Blowfish
+
+  or Crypt::DES
+
+	http://search.cpan.org/search?dist=Crypt-DES
+
+  or Crypt::IDEA
+
+	http://search.cpan.org/search?dist=Crypt-IDEA
+
+* DBI
+
+	http://search.cpan.org/search?dist=DBI
+
+* the specific DBD for your database, e.g. Msql-Mysql
+
+	http://search.cpan.org/search?dist=Msql-Mysql-modules
+
+* Mail::Sendmail, you definitely need this if your server doesn't have
+  sendmail (most unix servers have sendmail)
+
+	http://search.cpan.org/search?dist=Mail-Sendmail
+
+You need none of the above mentioned libraries if you are not going to
+use the user/session management and database APIs of LibWeb, namely
+LibWeb::Admin, LibWeb::Crypt, LibWeb::Database, LibWeb::Digest and
+LibWeb::Session.
+
+LibWeb currently does not have mod_perl support.
+
+
+FEATURES
+--------
+LibWeb is a Perl library/toolkit for building community web
+site/applications.
+
+Features:
+
+* Members and sessions management (authentication via cookies),
+
+* concise, database independent and easy to use database API with
+  enhanced MySQL support (planning),
+
+* template-driven, dynamic HTML page generation without using
+  PHP/ASP/SSI/Javascript, and
+
+* HTML widgets and themes.
 
 
 INSTALLATION
@@ -62,10 +116,16 @@ are searched by perl, run
 
 	perl -le 'print join $/, @INC'
 
-If the above doesn't work for you, try:
+If the above doesn't work for you (for instance, you do not have make
+on your machine), try:
 
 	cp -R LibWeb /usr/local/lib/perl5
 	[ or cp it to other standard perl place on your machine ]
+
+If the above still doesn't work for you (for instance, you do not have
+shell access to your server), try upload the whole thing and its
+contents of the directory called ``LibWeb'' via ftp or any other means
+that are available to you to your server.
 
 For installing into non-standard location, use the PREFIX and
 LIB attribute.  PREFIX and LIB can be used to set several
@@ -98,51 +158,66 @@ library.  By default, ``make test'' will look for modules in
 these locations,
 
 1. '..','../blib/lib','../blib/arch' (with respect to ./t), and
-2. LIB=~ (that is the make switch you specified if you intended
-   to install LibWeb into non-standard location, e.g.
-   `perl Makefile.PL LIB=~/path_to/my_lib'), and
-3. the standard @INC.
+2. the standard @INC.
 	
 To check the standard @INC in which the library directories
 are searched by perl, run
 
 	perl -le 'print join $/, @INC'
 
-``make test'' simply prepends 1. and 2. to the standard @INC.
+``make test'' simply prepends 1. to the standard @INC.
 
-If 1., 2. and 3. do not cover the paths into which you have
-installed perl's standard library and LibWeb's dependencies
-(e.g. Crypt::Blowfish and DBI ...etc.  See the DEPENDENCES
-section of this README for more information), you have to
-change the ``use lib ...'' line on top of every ./t/*.t test
-script.  E-mail me if you do not know how to do this.
-Hopefully, this will be resolved in next release of LibWeb.
+If 1 and 2 do not cover the paths into which you have installed perl's
+standard library and LibWeb's dependencies (e.g. Crypt::Blowfish and
+DBI ...etc.  See the DEPENDENCIES section of this README for more
+information), you have to change the ``use lib ...'' line on top of
+every ./t/*.t test script either manually or perform the following
+stunt (replace YOUR_LIB_PATH according to your needs),
+
+	perl -i -p -e "s|use lib |use lib 'YOUR_LIB_PATH',|;" ./t/*.t
+
+then you can run or re-run ``make test''.
+
+If your perl is too old, for example, 5.004_04 built, you may get the
+following kind of error messages,
+
+	Ambiguous use of...
+
+This is probably harmless and you can still use LibWeb.
 
 
 AFTER INSTALLATION: RUNNING SAMPLE SCRIPTS
 ------------------------------------------
-Six samples can be found in ./eg,
+Eight samples can be found in ./eg,
 
-* MyHTML.pm
-* USER_LOG.sql
-* USER_PROFILE.sql
-* dot_lwrc
-* lm.cgi
-* testing.cgi
+o MyHTML.pm
+o MyTheme.pm
+o USER_LOG.sql
+o USER_PROFILE.sql
+o dot_lwrc
+o lm.cgi
+o lw.cgi
+o style.css
 
 To use LibWeb and run the sample scripts,
 
-1. You must first edit dot_lwrc and place it *outside* (for security
-reasons) your web document root,
+1. You must first edit dot_lwrc, chmod 600 it and make it Web
+inaccessible.  Depends on the user as which you run your web server
+and cgi scripts, the web server may not have enough privilege to read
+your 600 chmoded dot_lwrc, if this is the case, try chmod 640 or 644
+(but you run the risk of exposing the security sensitive data in your
+dot_lwrc; please e-mail me if there is a better way to solve the
+problem, thanks in advance).
 
-2. This step can be ignored if you intend not to use the
+2. This step can be ignored if you are not going to use the
 users/sessions management and database APIs of LibWeb (namely
-LibWeb::Admin, LibWeb::Crypt, LibWeb::Database and LibWeb::Session).
-Create the USER_PROFILE and USER_LOG table.  For example if your
-database is MySQL and `your_db_name' is your database's name,
+LibWeb::Admin, LibWeb::Crypt, LibWeb::Database, LibWeb::Digest and
+LibWeb::Session).  Create the USER_PROFILE and USER_LOG table.  For
+example if your database is MySQL and `your_db_name' is your
+database's name,
 
-  mysql -p your_db_name < USER_LOG.sql
-  mysql -p your_db_name < USR_PROFILE.sql
+	mysql -p your_db_name < USER_LOG.sql
+	mysql -p your_db_name < USR_PROFILE.sql
 
 This will create both the USER_LOG AND USER_PROFILE tables. If you
 want to otherwise change the table names, edit these scripts before
@@ -152,38 +227,46 @@ the rc file.  If you have enough privilege, you should create a
 separate database for LibWeb and then create the two tables.
 
 3. After you have configured the rc file (e.g. dot_lwrc) and created
-database tables, you should edit `testing.cgi', upload it to your
+the database tables, you should edit `lw.cgi', upload it to your
 cgi-bin, chmod 755 it and run it by using a browser.  What to edit in
-`testing.cgi'?  First, edit the first line so that it points to the
-perl interpreter on your server; for example, replace
+`lw.cgi'?  First, edit the first line so that it points to the perl
+interpreter on your server; for example, replace
 
-  #!/usr/bin/perl -w
+	#!/usr/bin/perl -w
 
 with
 
-  #!/usr/local/bin/perl -w
+	#!/usr/local/bin/perl -w
 
 and finally edit several variables between the line ``# Begin edit.'' 
 and the line ``# End edit.''.
 
 4. `lm.cgi' is a sample login script.  Edit and run it as you have
-done with `testing.cgi'.  `lm.cgi' can be invoked via a browser in two
-main ways, one for logging in and another for logging out,
+done with `lw.cgi'.  `lm.cgi' can be invoked via a browser in two main
+ways, one for logging in and another for logging out,
 
-  http://www.your_site.org/cgi-bin/lm.cgi
+	http://www.your_site.org/cgi-bin/lm.cgi
 
 and
 
-  http://www.your_site.org/cgi-bin/lm.cgi?.a=logout
+	http://www.your_site.org/cgi-bin/lm.cgi?.a=logout
 
-5. MyHTML is a sample perl class.  It demonstrates how to (ISA) make a
-sub-class of LibWeb::HTML::Default to customize the HTML display of
-Libweb applications.  Read the man page for LibWeb::HTML::Default for
-details.
+5. MyHTML.pm is a sample perl class.  It demonstrates how to (ISA)
+make a sub-class of LibWeb::HTML::Default to customize the HTML
+display of Libweb applications.  Read the man page for
+LibWeb::HTML::Default for details.
+
+6. MyTheme.pm is a sample perl class.  It demonstrated how to (ISA)
+make a sub-class of LibWeb::Themes::Default to write your own theme.
+
+7. style.css is for cascading style sheet layout for your Web pages.
+I picked this one as an example because it makes your Web pages look
+good under both Linux's and Windows's Web browsers.  It is a modified
+version of the style sheet used at www.freebsdzine.org.
 
 Source codes for other full-blown LibWeb applications are available at
 
-  http://leaps.sourceforge.net
+	http://leaps.sourceforge.net
 
 
 SECURITY ISSUES
@@ -195,15 +278,14 @@ However this is not implemented in LibWeb-0.01 because ``referer'' can
 easily be faked too.  Hopefully this can be resolved in future releases.
 A discussion of the ``redirect'' attack is available at
 
-  http://lwn.net/2000/features/Redirect.phtml
+	http://lwn.net/2000/features/Redirect.phtml
 
 You should frequently change the values for following attributes in
 the rc file,
 
-  RAND_RANGE
-  MAC_KEY
-  CIPHER_KEY
-  DIGEST_KEY
+	MAC_KEY
+	CIPHER_KEY
+	DIGEST_KEY
 
 If people know the values of all these keys, they can create a bogus
 authentication cookie themselves and fool the LibWeb's authentication
@@ -250,7 +332,7 @@ You can also cc them to me at
 
 	colin.kong@toronto.edu
 
-Please include:
+Please include IF POSSIBLE:
 
 1. A complete log of a complete build, e.g.:
 

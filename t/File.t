@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: File.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -46,8 +49,8 @@ sub test {
 
 # test_LibWeb_Database
 eval "use LibWeb::File";
-test(2, !$@, 'Could not load LibWeb::File module.');
+test(2, !$@, "Could not load LibWeb::File module.  $@");
 
 my $fh;
 eval { my $fh = LibWeb::File->new(); };
-test(3, !$@, 'LibWeb::File cannot be instantiated.');
+test(3, !$@, "LibWeb::File cannot be instantiated.  $@");

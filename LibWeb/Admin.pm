@@ -1,6 +1,5 @@
 #=============================================================================
-# LibWeb::Admin -- a component of LibWeb--a Perl library/toolkit for building
-#                  World Wide Web applications.
+# LibWeb::Admin -- User authentication for libweb applications.
 
 package LibWeb::Admin;
 
@@ -21,22 +20,27 @@ package LibWeb::Admin;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes. Should be commented out in production release.
+# $Id: Admin.pm,v 1.4 2000/07/18 06:33:30 ckyc Exp $
 
-
+#-############################
 # Use standard library.
 use SelfLoader;
 use strict;
 use vars qw(@ISA $VERSION);
 
+#-############################
 # Use custom library.
 require LibWeb::Session;
+##require LibWeb::Database;
 
-#Inheritance.
+#-############################
+# Inheritance.
 @ISA = qw(LibWeb::Session);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
+#-############################
+# Methods.
 sub new {
     #
     # Params: $class [, $rc_file]
@@ -70,7 +74,7 @@ sub _authenticateLogin {
     #    are encrypted as ciphers (two-way encrypted) for later decryption during
     #    authentication check and for generating logout cookies.
     #    
-    # 2. Update database: `LAST_LOGIN' (internet address, IP and date/time) and
+    # 2. Update database: `LAST_LOGIN' (Internet address, IP and date/time) and
     #    `NUM_LOGIN_ATTEMPT' for that user IS NOT done here since we want to make
     #    sure client Web browser accepts cookie first.  This task is delegated
     #    to sub is_login(1) which should be called by client codes when user is
@@ -88,11 +92,12 @@ sub _authenticateLogin {
     #
     
     #============== #1 =====================
-    my ($self, $crypt, $uid, $usrName, $db, $sid, $issueTime, $expireTime, $user,
-	$ip, $cuid, $macKey, $preMAC, $MAC, $dummyCookie, $auth_cookie);
+    my ($self, $crypt, $digest, $uid, $usrName, $db, $sid, $issueTime, $expireTime,
+	$user, $ip, $cuid, $macKey, $preMAC, $MAC, $dummyCookie, $auth_cookie);
     $self = shift;
     ($uid, $usrName, $db) = @_;
     $crypt = LibWeb::Crypt->new();
+    $digest = LibWeb::Digest->new();
     my(
        $cipher_key, $cipher_algorithm, $cipher_format,
        $digest_key, $digest_algorithm, $digest_format
@@ -104,18 +109,18 @@ sub _authenticateLogin {
 
     ($sid, $issueTime, $expireTime, $user, $ip, $cuid, $macKey) =
       ( 
-       $crypt->generate_digest(
-			      -data => $$ + $$uid,
-			      -key => $digest_key,
-			      -algorithm => $digest_algorithm,
-			      -format => $digest_format
-			     ),
-       $crypt->generate_digest(
-			      -data => time(),
-			      -key => $digest_key,
-			      -algorithm => $digest_algorithm,
-			      -format => $digest_format
-			     ),
+       $digest->generate_digest(
+				-data => $$ + $$uid,
+				-key => $digest_key,
+				-algorithm => $digest_algorithm,
+				-format => $digest_format
+			       ),
+       $digest->generate_digest(
+				-data => time(),
+				-key => $digest_key,
+				-algorithm => $digest_algorithm,
+				-format => $digest_format
+			       ),
        $crypt->encrypt_cipher(
 			      -data => time() + $self->{LOGIN_DURATION_ALLOWED},
 			      -key => $cipher_key,
@@ -128,12 +133,12 @@ sub _authenticateLogin {
 			      -algorithm => $cipher_algorithm,
 			      -format => $cipher_format
 			     ),
-       $crypt->generate_digest( 
-			      -data => $ENV{REMOTE_ADDR},
-			      -key => $digest_key,
-			      -algorithm => $digest_algorithm,
-			      -format => $digest_format
-			     ),
+       $digest->generate_digest( 
+				-data => $ENV{REMOTE_ADDR},
+				-key => $digest_key,
+				-algorithm => $digest_algorithm,
+				-format => $digest_format
+			       ),
        $crypt->encrypt_cipher(
 			      -data => $$uid,
 			      -key => $cipher_key,
@@ -143,26 +148,26 @@ sub _authenticateLogin {
        $self->{MAC_KEY}
       );
     $preMAC =
-      $crypt->generate_MAC(
-			   -data => $sid.$issueTime.$expireTime.$user.$ip.$cuid.$macKey,
-			   -key => $macKey,
-			   -algorithm => $digest_algorithm,
-			   -format => $digest_format
-			  );
-    $MAC = $crypt->generate_MAC(
-				-data => $macKey.$preMAC,
-				-key => $macKey,
-				-algorithm => $digest_algorithm,
-				-format => $digest_format
-			       );
+      $digest->generate_MAC(
+			    -data => $sid.$issueTime.$expireTime.$user.$ip.$cuid.$macKey,
+			    -key => $macKey,
+			    -algorithm => $digest_algorithm,
+			    -format => $digest_format
+			   );
+    $MAC = $digest->generate_MAC(
+				 -data => $macKey.$preMAC,
+				 -key => $macKey,
+				 -algorithm => $digest_algorithm,
+				 -format => $digest_format
+				);
     $dummyCookie =
       "B=" .
-	$crypt->generate_digest(
-			       -data => rand( $self->{RAND_RANGE} ),
-			       -key => $digest_key,
-			       -algorithm => $digest_algorithm,
-			       -format => $digest_format
-			      ) .
+	$digest->generate_digest(
+				 -data => rand( $self->{RAND_RANGE} ),
+				 -key => $digest_key,
+				 -algorithm => $digest_algorithm,
+				 -format => $digest_format
+				) .
 				"; path=/";
     # CGI::Cookie has problem with characters `=' and `&' or a problem with my
     # understanding of autoescaping?  Therefore prepare the auth cookie manually
@@ -208,7 +213,7 @@ sub _handleLogin {
 #	    $db->do( -sql => $sql_statement );
 	    $self->fatal(
 			 -alertMsg => "Attempt to use guess [$$guess] to log in " .
-			              "as user [$$usrName] while account's login" .
+			              "as user [$$usrName] while account's login " .
 			              "indicator is high!",
 			 -isDisplay => 0
 			);
@@ -226,7 +231,7 @@ sub is_logout {
     # Params:
     # none.
     #
-    # Check to see if authenication cookies have been removed from
+    # Check to see if authentication cookies have been removed from
     # client Web browser and return true (1).  Otherwise, print
     # $self->{HHTML}->logout_failed() and exit the program.
     #
@@ -471,14 +476,24 @@ sub add_new_user {
     $db = new LibWeb::Database();
     #========================= #1. ============================
     # Check to see if user name is valid.
+    # LibWeb::Core::sanitize() doesn't replace normal spaces with empty token
+    # and therefore check that manually.
+    $self->fatal(-msg => 'User name cannot contain spaces.',
+		 -input => $user_name,
+		 -alertMsg => 'LibWeb::Admin::add_new_user()',
+		 -helpMsg => $self->{HHTML}->special_characters_not_allowed())
+      if ( $user_name =~ m:\s+: );
+
     $sanitized_user_name = $self->sanitize( -text => $user_name,
 					    -allow => ['_', '-'] );
+
     $self->fatal(-msg => 'User name cannot contain special characters.',
 		 -input => $user_name,
 		 -alertMsg => 'LibWeb::Admin::add_new_user()',
 		 -helpMsg => $self->{HHTML}->special_characters_not_allowed())
       unless ($user_name eq $sanitized_user_name);
-    # Since sanitize() doesn't replace normal spaces with empty token.
+
+    # Double protection although we have checked for spaces already.
     $sanitized_user_name =~ s:\s+::g;
 
     #========================= #2. ============================
@@ -497,7 +512,7 @@ sub add_new_user {
     # Add user to database.
     $crypt_pass = LibWeb::Crypt->new()->encrypt_password($password);
     $sql_statement = "insert into $self->{USER_PROFILE_TABLE} " .
-	             "set $self->{USER_PROFILE_TABLE_NAME} = '$user_name', " .
+	             "set $self->{USER_PROFILE_TABLE_NAME} = '$sanitized_user_name', " .
 		     "$self->{USER_PROFILE_TABLE_PASS} = '$crypt_pass', " .
 		     "$self->{USER_PROFILE_TABLE_EMAIL} = '$email'";
     $db->do( -sql => $sql_statement );
@@ -509,8 +524,11 @@ sub add_new_user {
 
     #========================= #6. ============================
     # Notify admin.
-    $self->fatal(-alertMsg => "Added new user: $user_name password: $password from ".
-		              "$ENV{REMOTE_ADDR} $ENV{REMOTE_HOST} at ".localtime(),
+    $self->fatal(-alertMsg =>
+		 "Added new user:\t$user_name\n".#Password:\t$password\n".
+		 "E-mail address:\t$email\n".
+		 "From:\t$ENV{REMOTE_ADDR} $ENV{REMOTE_HOST}\n".
+		 "Time:\t".localtime(),
 		 -isDisplay => 0)
       if $self->{IS_NOTIFY_ADMIN_WHEN_ADDED_NEW_USER};
 
@@ -520,11 +538,9 @@ sub add_new_user {
 1;
 __END__
 
-=pod
-
 =head1 NAME
 
-LibWeb::Admin - USER AUTHENTICATION FOR WEB APPLICATIONS
+LibWeb::Admin - User authentication for libweb applications
 
 =head1 SUPPORTED PLATFORMS
 
@@ -537,10 +553,6 @@ LibWeb::Admin - USER AUTHENTICATION FOR WEB APPLICATIONS
 =head1 REQUIRE
 
 =over 2
-
-=item *
-
-LibWeb::CGI
 
 =item *
 
@@ -562,99 +574,116 @@ LibWeb::Session
 
     use LibWeb::Admin;
     my $a = LibWeb::Admin->new();
+
     $a->login( $user_name, $guess_password );
+
              ...
-    my ( $user_name, $uid ) = $a->is_login();
+
+    my ($user_name,$uid) = $a->get_user();
+
              ...
+
     $a->logout();
+
              ...
+
     $a->is_logout();
 
 =head1 ABSTRACT
 
 This class manages user authentication for web applications written
 based on the interfaces and frameworks defined in LibWeb, a Perl
-library/toolkit for programming web applications.  It is
-responsible for managing user login, logout and new sign-up.  Therefore
-you may want to use this module in the login script for your site.
+library/toolkit for programming web applications.  It is responsible
+for managing user login, logout and new sign-up.  Therefore you may
+want to use this module in the login script for your site.
 
 The current version of LibWeb::Admin.pm is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
-Several LibWeb applications (LEAPs) have be written, released and
-are available at
+Several LibWeb applications (LEAPs) have be written, released and are
+available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 TYPOGRAPHICAL CONVENTIONS AND TERMINOLOGY
 
-Variables in all-caps (e.g. MAX_LOGIN_ATTEMPT_ALLOWED) are those variables
-set through LibWeb's rc file.  Please read L<LibWeb::Core> for
-more information.  `Sanitize' means escaping any illegal character
+Variables in all-caps (e.g. MAX_LOGIN_ATTEMPT_ALLOWED) are those
+variables set through LibWeb's rc file.  Please read L<LibWeb::Core>
+for more information.  `Sanitize' means escaping any illegal character
 possibly entered by user in a HTML form.  This will make Perl's taint
 mode happy and more importantly make your site more secure.
 Definition for illegal characters is given in L<LibWeb::Core>.  All
-`error/help messages' mentioned can be found at L<LibWeb::HTML::Error> and
-they can be customized by ISA (making a sub-class of) LibWeb::HTML::Default.
-Please see L<LibWeb::HTML::Default> for details.
+`error/help messages' mentioned can be found at L<LibWeb::HTML::Error>
+and they can be customized by ISA (making a sub-class of)
+LibWeb::HTML::Default.  Please see L<LibWeb::HTML::Default> for
+details.
 
 =head1 DESCRIPTION
 
 =head2 HANDLING USER LOGIN
 
 Fetch the user name and password from a HTML form and pass them to
-login():
+login(),
 
   $a->login( $user_name, $guess );
 
-If the password is correct and the user name exists in the
-database, this will send an authentication cookie to the client web browser
-and return 1; send an alert e-mail to the site administrator and print
-out an error message and exit otherwise.
+If the password is correct and the user name exists in the database,
+this will send an authentication cookie to the client web browser and
+return 1; send an alert e-mail to the site administrator
+(B<ADMIN_EMAIL>) and print out an error message and exit otherwise.
 
 =head2 HANDLING USER SESSION AFTER LOGIN
 
 At the top of every web application that requires user authentication,
 
-  my ( $user_name, $uid ) = $a->is_login();
+  my ($user_name,$uid) = $a->get_user();
 
-to retrieve user name and user ID from cookie.  This will send an alert
-e-mail to the site administrator and redirect the user to a login page
-if no authentication cookie is found or it has been tampered with.  I would
-recommend you use LibWeb::Session instead which is specifically designed for
-that purpose and therefore runs a little bit faster,
+to retrieve user name and user ID from cookie.  This will send an
+alert e-mail to the site administrator (B<ADMIN_EMAIL>) and redirect
+the user to the login page (B<LM_IN>) if no authentication cookie is
+found or it has been tampered with.  I would recommend you use
+LibWeb::Session instead which is specifically designed for that
+purpose and therefore runs a little bit faster,
 
   use LibWeb::Session;
-  my $a = new LibWeb::Session();
-  my ( $user_name, $uid ) = $a->is_login();
+  my $s = new LibWeb::Session();
 
-LibWeb::Admin should be used by login scripts; whereas LibWeb::Session should
-be used by any web applications once the user has logged in.  Read
-L<LibWeb::Session> for details.
+  my ($user_name,$uid) = $s->get_user();
 
-To update the database (set the login indicator to high) when the user is
-first login,
+LibWeb::Admin should be used by login scripts; whereas LibWeb::Session
+should be used by any web applications once the user has logged in.
+Read L<LibWeb::Session> for details.
 
-  my ( $user_name, $uid ) = $a->is_login(1);
+To update the database (set the login indicator to B<LOGIN_INDICATOR>)
+when the user is first logged in,
 
-This is probably done in `my control panel' or `my page' of some
-sorts which is the first script invoked after password authentication.
+  my ($user_name,$uid)
+      = $s->get_user( -is_update_db => 1 );
 
+This is probably done in `my control panel' or `my page' of some sorts
+which is the first script invoked after password authentication.
 
 =head2 HANDLING USER LOGOUT
 
   $a->logout();
 
 This will check to see if the user is logged in.  Send an alert e-mail
-to the site administrator and print out an error message if the
-remote user is not logged in or has no authentication cookie.
-Otherwise, this will flush B<NUM_LOGIN_ATTEMPT> to 0 in database
-(indicating that the user has logged out).  This will also send
-de-authentication cookies to nullify all cookies on client web browser.
-Return 1 upon success.
+to the site administrator (B<ADMIN_EMAIL>) and redirect user to the
+login page (B<LM_IN>) if the remote user is not logged in or has no
+authentication cookie.  Otherwise, this will flush
+B<NUM_LOGIN_ATTEMPT> to 0 in database (indicating that the user has
+logged out).  This will also send de-authentication cookies to nullify
+all authentication cookies on client web browser.  Return 1 upon
+success.
+
+=head2 PARANOIA
+
+  $a->is_logout();
+
+Check to see if authentication cookies are indeed removed from the
+client Web browser and return true (1).  Otherwise, print an error
+message, send an alert e-mail to B<ADMIN_EMAIL> and exit the program.
 
 =head2 ADDING NEW USER TO DATABASE
 
@@ -678,17 +707,21 @@ Print out an error message and abort if,
 
 =item *
 
-`user_email' does not conform to the standard format defined in L<LibWeb::Core> or
+`user_email' does not conform to the standard format defined in
+L<LibWeb::Core> or
 
 =item *
 
-`user_email' is already registered if B<IS_ALLOW_MULTI_REGISTRATION> is set to 0.
+`user_email' is already registered if B<IS_ALLOW_MULTI_REGISTRATION>
+is set to 0.
 
 =back
 
-If the parameters pass all the tests, this will encrypt the password, add that
-with the user name to the database and notify the site administrator by e-mail if
-B<IS_NOTIFY_ADMIN_WHEN_ADDED_NEW_USER> is set to 1.  Return the registered
+If the parameters pass all the tests, this will encrypt the password,
+add that with the user name to the database, notify the site
+administrator (B<ADMIN_EMAIL>) by e-mail if
+B<IS_NOTIFY_ADMIN_WHEN_ADDED_NEW_USER> is set to 1 and log that event
+in B<FATAL_LOG> if B<FATAL_LOG> is defined.  Return the registered
 user_name upon success.
 
 =head1 AUTHORS
@@ -705,8 +738,8 @@ user_name upon success.
 
 =head1 SEE ALSO
 
-
-L<LibWeb::Core>, L<LibWeb::CGI>, L<LibWeb::Crypt>, L<LibWeb::Database>,
-L<LibWeb::HTML::Default>, L<LibWeb::Session>, L<LibWeb::Themes::Default>.
+L<LibWeb::Core>, L<LibWeb::CGI>, L<LibWeb::Crypt>,
+L<LibWeb::Database>, L<LibWeb::Digest>, L<LibWeb::HTML::Default>,
+L<LibWeb::Session>, L<LibWeb::Themes::Default>.
 
 =cut

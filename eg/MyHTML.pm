@@ -1,7 +1,7 @@
 #=============================================================================
 # MyHTML -- a sample class to demonstrate how to (ISA) make a sub-class of
-#           LibWeb::HTML::Default.  LibWeb is a Perl library/toolkit for
-#           building World Wide Web applications.
+#           LibWeb::Themes::Default to customize the `stdout' and `stderr' HTML
+#           display of LibWeb.
 
 package MyHTML;
 
@@ -22,19 +22,26 @@ package MyHTML;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
+# $Id: MyHTML.pm,v 1.7 2000/07/18 06:33:30 ckyc Exp $
+
+$VERSION = '0.02';
+
+#-################################
 # Use standard libraries.
 use strict;
 use vars qw($VERSION @ISA);
+use Carp;
 
-# use custome libraries.
-# if you have installed LibWeb into non-standard location,
-# uncomment the following line and add the path to LibWeb accordingly.
-#use lib '/path_to/lib';
-use LibWeb::HTML::Default;
+#-################################
+# Use custom libraries.
+require LibWeb::HTML::Default;
 
-$VERSION = '0.01';
+#-################################
+# Inheritance.
 @ISA = qw( LibWeb::HTML::Default );
 
+#-################################
+# Methods.
 sub new {
     #
     # Params: $class, $rc_file
@@ -55,15 +62,13 @@ sub new {
     bless( $self, $Class );
 }
 
-sub DESTROY {
-    # Destructor: performs cleanup when this object is not being
-    # referenced any more.  For example, disconnect a database
-    # connection, filehandle...etc.
-}
+sub DESTROY {}
 
 sub display {
    #
-   # Override LibWeb::HTML::Site::display() to customize the normal HTML display.
+   # Overriding base class method: LibWeb::HTML::Default::display() to customize
+   # the normal HTML display.
+   #
    # Params: -content=>, [ -sheader=>, -lpanel=>, -rpanel=>, -header=>, -footer=> ].
    #
    # -content, -sheader, -lpanel, -rpanel, -header and -footer must be an ARRAY
@@ -82,57 +87,26 @@ sub display {
    # to Web client.
    #
    my ($self, $content, $sheader, $lpanel, $rpanel, $header, $footer,
-	@content_display, @sheader_display, @lpanel_display, @rpanel_display,
-	@header_display, @footer_display, $ref);
+       $content_display, $sheader_display, $lpanel_display, $rpanel_display,
+       $header_display, $footer_display);
    $self = shift;
    ($content, $sheader, $lpanel, $rpanel, $header, $footer) =
      $self->rearrange(['CONTENT', 'SHEADER', 'LPANEL', 'RPANEL', 'HEADER',
 			'FOOTER'], @_);
 
-   $content ||= [ $self->content() ];
-   $sheader ||= [ $self->sheader() ];
-   $lpanel ||= [ $self->lpanel() ];
-   $rpanel ||= [ $self->rpanel() ];
-   $header ||= [ $self->header() ];
-   $footer ||= [ $self->footer() ];
+   $content ||= $self->content();
+   $sheader ||= $self->sheader();
+   $lpanel ||= $self->lpanel();
+   $rpanel ||= $self->rpanel();
+   $header ||= $self->header();
+   $footer ||= $self->footer();
 
-   foreach (@$content) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@content_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@content_display, @$_); }
-       else { push(@content_display, $_); }
-   }
-   foreach (@$sheader) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@sheader_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@sheader_display, @$_); }
-       else { push(@sheader_display, $_); }
-   }
-   foreach (@$header) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@header_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@header_display, @$_); }
-       else { push(@header_display, $_); }
-   }
-   foreach (@$lpanel) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@lpanel_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@lpanel_display, @$_); }
-       else { push(@lpanel_display, $_); }
-   }
-   foreach (@$rpanel) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@rpanel_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@rpanel_display, @$_); }
-       else { push(@rpanel_display, $_); }
-   }
-
-   foreach (@$footer) {
-	$ref = ref($_);
-	if ( $ref eq 'SCALAR' ) { push(@footer_display, $$_); }
-	elsif ( $ref eq 'ARRAY' ) { push(@footer_display, @$_); }
-       else { push(@footer_display, $_); }
-   }
+   $content_display = _parse_construct($content);
+   $sheader_display = _parse_construct($sheader);
+   $lpanel_display = _parse_construct($lpanel);
+   $rpanel_display = _parse_construct($rpanel);
+   $header_display = _parse_construct($header);
+   $footer_display = _parse_construct($footer);
 
 #<!-- Begin template -->
 return \<<HTML;
@@ -141,27 +115,27 @@ return \<<HTML;
 <meta name="keywords" content="$self->{SITE_KEYWORDS}">
 <title>$self->{SITE_NAME}</title><link rel="stylesheet" href="$self->{CSS}"></head>
 <body bgcolor="$self->{SITE_BG_COLOR}" text="$self->{SITE_TXT_COLOR}">
-@header_display
-@sheader_display
+@$header_display
+@$sheader_display
 <table width="100%" cellspacing="10" cellpadding="0" border="0" bgcolor="$self->{SITE_BG_COLOR}">
 <Tr>
 
 <!-- Left panel -->
 <td width="20%" valign="top">
-@lpanel_display</td><!-- end left panel -->
+@$lpanel_display</td><!-- end left panel -->
 
 <!-- Content -->
 <td width="60%" valign="top">
-@content_display</td><!-- end content -->
+@$content_display</td><!-- end content -->
 
 <!-- Right panel -->
 <td width="20%" valign="top">
-@rpanel_display</td><!-- end right panel -->
+@$rpanel_display</td><!-- end right panel -->
 
 </Tr>
 </table>
 
-@footer_display</body></html>
+@$footer_display</body></html>
 
 HTML
 #<!-- End template -->
@@ -169,19 +143,25 @@ HTML
 
 sub display_error {
    #
-   # Overriding base class method: LibWeb::HTML::Error::display_error() to
+   # Overriding base class method: LibWeb::HTML::Default::display_error() to
    # customize the error message display.
    #
    # Params: $caller, $error_msg, $error_input, $help_msg
    #
-   # $caller if the object calling this method.
+   # $caller is the object calling this method.
    # All other parameters are scalars except $help_msg which must be a
    # SCALAR ref.
    #
-   my ($caller, $error_msg, $error_input, $help_msg);
+   my ($caller, $error_msg, $error_input, $err_input_display, $help_msg);
    shift;
    $caller = shift;
    ($error_msg, $error_input, $help_msg) = @_;
+   croak "-helpMsg must be a SCALAR reference."
+     unless ( ref($help_msg) eq 'SCALAR' );
+    $err_input_display = ($error_input ne ' ') ?
+                         "<b><big>The erroneous input:</big></b>".
+                         "<p><font color=\"red\">$error_input</font>" : 
+			 ' ';
 
 # Customize the error/help message display here.
 return \<<HTML;
@@ -189,7 +169,7 @@ return \<<HTML;
 <link rel="stylesheet" href="$caller->{CSS}"></head>
 <body bgcolor="$caller->{SITE_BG_COLOR}" text="$caller->{SITE_TXT_COLOR}">
 <center>
-<a href="/"><img src="$caller->{SITE_LOGO_BG}" border="0" alt="$caller->{SITE_NAME}"></a>
+<a href="/"><img src="$caller->{SITE_LOGO}" border="0" alt="$caller->{SITE_NAME}"></a>
 <table border=0 cellpadding=0 cellspacing=0 width="65%" bgcolor="$caller->{SITE_BG_COLOR}">
 
 <Tr><td>
@@ -204,19 +184,17 @@ return \<<HTML;
 
 <Tr><td>
 <table border=0 cellpadding=7 cellspacing=0 width="100%" bgcolor="$caller->{SITE_BG_COLOR}"><Tr><td>
-<p>The following error has occurred:
-<p><center>$error_msg</center>
-<p>The erroneous input:
-<p><center><font color="red">$error_input</font></center>
-<p>Suggested help:
-<p><center>$$help_msg</center>
-
+<p><b><big>The following error has occurred:</big></b>
+<p>$error_msg
+<p>$err_input_display
+<p><b><big>Suggested help:</big></b>
+<p>$$help_msg
 </td></Tr></table>
 </td></Tr>
 
 </table><br>
 <table border=0 width="60%"><Tr><td align="center"><hr size=1>
-<a href="$caller->{COPYRIGHT}">Copyright</a>&nbsp;&copy;&nbsp;$caller->{SITE_YEAR}&nbsp;$caller->{SITE_NAME}.  All rights reserved.<br>
+Copyright&nbsp;&copy;&nbsp;$caller->{SITE_YEAR}&nbsp;$caller->{SITE_NAME}.  All rights reserved.<br>
 <a href="$caller->{TOS}">Terms of Services.</a> &nbsp;
 <a href="$caller->{PRIVACY_POLICY}">Privacy Policy.</a>
 </td></Tr></table>
@@ -225,52 +203,78 @@ return \<<HTML;
 HTML
 }
 
-#=================================================================================
-# Begin implementation for site's default header, sub header, left panel,
-# right panel, content, footer and possibly any other HTML constructs.
-sub content {
-return \<<HTML;
+#-###############################################
+# Private method.
+sub _parse_construct {
+    my ($ref, @construct_display);
+    my $construct = $_[0];
+    
+    eval {
+	foreach (@$construct) {
+	    $ref = ref($_);
+	    if ( $ref eq 'SCALAR' ) { push(@construct_display, $$_); }
+	    elsif ( $ref eq 'ARRAY' ) { push(@construct_display, @$_); }
+	    else { push(@construct_display, $_); }
+	}
+    };
+    croak "$@" if ($@);
 
-HTML
+    return \@construct_display;
 }
 
-sub lpanel {
-return \<<HTML;
+#-##########################################################
+# Begin implementation for site's default header, sub header,
+# left panel, right panel, content, footer and possibly other
+# HTML constructs.  Make sure each of the constructs return
+# an ARRAY reference.  header() and footer() have been
+# implemented here as examples.
+sub header {
+    my $self = shift;
 
+my $header = \<<HTML;
+<center>
+<a href="$self->{URL_ROOT}"><img src="$self->{SITE_LOGO}" border="0" alt="$self->{SITE_NAME}"></a>
+</center>
 HTML
-}
 
-sub rpanel {
-return \<<HTML;
-
-HTML
+    return [ $header ];   
 }
 
 sub sheader {
-return \<<HTML;
-
-HTML
+    return [' '];
 }
 
-sub header {
-return \<<HTML;
+sub lpanel {
+    return [' '];
+}
 
-HTML
+sub content {
+    return [' '];
+}
+
+sub rpanel {
+    return [' '];
 }
 
 sub footer {
     my $self = shift;
-return \<<HTML;
+
+my $footer = \<<HTML;
 <center><table border=0 width="60%"><Tr><td align="center"><hr size=1>
-<a href="$self->{COPYRIGHT}">Copyright</a>&nbsp;&copy;&nbsp;$self->{SITE_YEAR}&nbsp;$self->{SITE_NAME}.  All rights reserved.<br>
-<a href="$self->{TOS}">Terms of Services.</a> &nbsp;
+Copyright&nbsp;&copy;&nbsp;$self->{SITE_YEAR}&nbsp;$self->{SITE_NAME}.  All rights reserved.<br>
+<a href="$self->{TOS}">Terms of Service.</a> &nbsp;
 <a href="$self->{PRIVACY_POLICY}">Privacy Policy.</a>
 </td></Tr></table></center>
 HTML
+
+    return [ $footer ];
 }
 
-#==================================================================================
-# Override LibWeb::HTML::Error methods.
+#-####################################################################
+# Overriding LibWeb::HTML::Default's error messages (i.e. LibWeb's
+# built-in error+help messages).  Make sure each of the methods return
+# a SCALAR reference.
+#
 # For example:
 sub cookie_error {
 return \<<HTML;

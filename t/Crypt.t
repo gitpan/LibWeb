@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: Crypt.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -8,13 +11,7 @@
 # (It may become useful if the test is moved to ./t subdirectory.)
 use lib '..','../blib/lib','../blib/arch';
 
-eval "use Digest";
-if ($@) {
-    warn "Digest modules not installed.\n";
-    print "1..0\n";
-    exit;
-}
-
+# Test to see if dependencies have been installed.
 eval "use Crypt::CBC";
 if ($@) {
     warn "Crypt::CBC module not installed.\n";
@@ -32,7 +29,7 @@ unless ( defined $cipher_algo ) {
     exit;
 }
 
-print "1..13\n";
+print "1..9\n";
 
 # Set up a CGI environment
 $ENV{REQUEST_METHOD}  = 'GET';
@@ -60,80 +57,16 @@ sub test {
 
 # test_LibWeb_Crypt
 eval "use LibWeb::Crypt";
-test(1, !$@, 'Could not load LibWeb::Crypt module.');
+test(1, !$@, "Could not load LibWeb::Crypt module.  $@");
 
 my $crypt;
 eval { $crypt = LibWeb::Crypt->new(); };
-test(2, !$@, 'LibWeb::Crypt cannot be instantiated.');
+test(2, !$@, "LibWeb::Crypt cannot be instantiated.  $@");
 
 test(3, $cipher_algo,
      'Crypt::Blowfish or Crypt::DES or Crypt::IDEA not found.');
-if ($crypt && $cipher_algo) {
-    my $digest_algo = 'Digest::SHA1';
-    my $is_generate_mac_pos_ok;
-    eval { $is_generate_mac_pos_ok = $crypt->generate_MAC(
-							  -data => 'hello world',
-							  -key => '1234abcd',
-							  -algorithm => $digest_algo,
-							  -format => 'b64'
-							 )
-	     eq $crypt->generate_MAC(
-				     -data => 'hello world',
-				     -key => '1234abcd',
-				     -algorithm => $digest_algo,
-				     -format => 'b64'
-				    );
-       };
-    test(4, $is_generate_mac_pos_ok, 'LibWeb::Crypt::generate_MAC positively failed.');
-    
-    my $is_generate_mac_neg_ok;
-    eval { $is_generate_mac_neg_ok = $crypt->generate_MAC(
-							  -data => 'hello world',
-							  -key => '1234abcd',
-							  -algorithm => $digest_algo,
-							  -format => 'b64'
-							 )
-	     ne $crypt->generate_MAC(
-				     -data => 'hello world',
-				     -key => '1234abce',
-				     -algorithm => $digest_algo,
-				     -format => 'b64'
-				    );
-       };
-    test(5, $is_generate_mac_neg_ok, 'LibWeb::Crypt::generate_MAC negatively failed.');
-    
-    my $is_generate_digest_pos_ok;
-    eval { $is_generate_digest_pos_ok = $crypt->generate_digest(
-								-data => 'hello world',
-								-key => '1234abcd',
-								-algorithm => $digest_algo,
-								-format => 'b64'
-							       )
-	     eq $crypt->generate_digest(
-					-data => 'hello world',
-					-key => '1234abcd',
-					-algorithm => $digest_algo,
-					-format => 'b64'
-				       );
-       };
-    test(6, $is_generate_digest_pos_ok, 'LibWeb::Crypt::generate_digest positively failed.');
-    
-    my $is_generate_digest_neg_ok;
-    eval { $is_generate_digest_neg_ok = $crypt->generate_digest(
-								-data => 'hello world',
-								-key => '1234abcd',
-								-algorithm => $digest_algo,
-								-format => 'b64'
-							       )
-	     ne $crypt->generate_digest(
-					-data => 'hello world',
-					-key => '1234abce',
-					-algorithm => $digest_algo,
-					-format => 'b64'
-				       );
-       };
-    test(7, $is_generate_digest_neg_ok, 'LibWeb::Crypt::generate_digest negatively failed.');
-    
+
+if ($crypt && $cipher_algo) {    
     my $is_encrypt_cipher_diff_data_ok;
     eval { $is_encrypt_cipher_diff_data_ok = $crypt->encrypt_cipher(
 								    -data => 'hello world',
@@ -148,7 +81,7 @@ if ($crypt && $cipher_algo) {
 				       -format => 'hex'
 				      );
        };
-    test(8, $is_encrypt_cipher_diff_data_ok, 'LibWeb::Crypt::encrypt_cipher diff_datafailed.');
+    test(4, $is_encrypt_cipher_diff_data_ok, 'LibWeb::Crypt::encrypt_cipher diff_datafailed.');
     
     my $is_encrypt_cipher_diff_key_ok;
     my $cipher;
@@ -167,7 +100,7 @@ if ($crypt && $cipher_algo) {
 				    -format => 'hex'
 				   );
     };
-    test(9, $is_encrypt_cipher_diff_key_ok, 'LibWeb::Crypt::encrypt_cipher diff_key failed.');
+    test(5, $is_encrypt_cipher_diff_key_ok, 'LibWeb::Crypt::encrypt_cipher diff_key failed.');
     
     my $is_decrypt_cipher_pos_ok;
     eval { $is_decrypt_cipher_pos_ok = $crypt->decrypt_cipher(
@@ -183,7 +116,7 @@ if ($crypt && $cipher_algo) {
 				       -format => 'hex'
 				      );
        };
-    test(10, $is_decrypt_cipher_pos_ok, 'LibWeb::Crypt::decrypt_cipher positively failed.');
+    test(6, $is_decrypt_cipher_pos_ok, 'LibWeb::Crypt::decrypt_cipher positively failed.');
     
     my $is_decrypt_cipher_neg_ok;
     eval { $is_decrypt_cipher_neg_ok = $crypt->decrypt_cipher(
@@ -194,7 +127,7 @@ if ($crypt && $cipher_algo) {
 							     )
 	     ne 'hello world';
        };
-    test(11, $is_decrypt_cipher_neg_ok, 'LibWeb::Crypt::decrypt_cipher negatively failed.');
+    test(7, $is_decrypt_cipher_neg_ok, 'LibWeb::Crypt::decrypt_cipher negatively failed.');
     
     my $is_encrypt_password_pos_ok;
     eval {
@@ -202,7 +135,7 @@ if ($crypt && $cipher_algo) {
 	$is_encrypt_password_pos_ok = crypt('pineapple', $encrypted_pass)
 	  eq $encrypted_pass;
     };
-    test(12, $is_encrypt_password_pos_ok, 'LibWeb::Crypt::encrypt_password positively failed.');
+    test(8, $is_encrypt_password_pos_ok, 'LibWeb::Crypt::encrypt_password positively failed.');
     
     my $is_encrypt_password_neg_ok;
     eval {
@@ -210,7 +143,5 @@ if ($crypt && $cipher_algo) {
 	$is_encrypt_password_pos_ok = crypt('pinesapple', $encrypted_pass)
 	  ne $encrypted_pass;
     };
-    test(13, $is_encrypt_password_pos_ok, 'LibWeb::Crypt::encrypt_password negatively failed.');
+    test(9, $is_encrypt_password_pos_ok, 'LibWeb::Crypt::encrypt_password negatively failed.');
 }
-
-

@@ -1,4 +1,7 @@
 # -*- perl -*-
+
+# $Id: CGI.t,v 1.5 2000/07/08 14:38:45 ckyc Exp $
+
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -46,7 +49,7 @@ sub test {
 
 # test_LibWeb_CGI
 eval "use LibWeb::CGI";
-test(2, !$@, 'Could not load LibWeb::CGI module.');
+test(2, !$@, "Could not load LibWeb::CGI module.  $@");
 my $cgi;
 eval { $cgi = LibWeb::CGI->new(); };
-test(3, !$@, 'LibWeb::CGI cannot be instantiated.');
+test(3, !$@, "LibWeb::CGI cannot be instantiated.  $@");

@@ -1,6 +1,5 @@
 #==============================================================================
-# LibWeb::Class -- a component of LibWeb--a Perl library/toolkit for building
-#                  World Wide Web applications.
+# LibWeb::Class -- A base class for libweb modules.
 
 package LibWeb::Class;
 
@@ -21,15 +20,18 @@ package LibWeb::Class;
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #=============================================================================
 
-# For debugging purposes.  Should be commented out in production release. 
+# $Id: Class.pm,v 1.4 2000/07/18 06:33:30 ckyc Exp $
 
+#-#############################
 # Use standard library.
 require 5.004;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
+#-#############################
+# Methods.
 sub new {
     my $class = shift;
     bless( {}, ref($class) || $class );
@@ -42,7 +44,7 @@ sub rearrange {
     # Stolen from CGI.pm and modified.
     #
     # Smart rearrangement of parameters to allow named parameter
-    # calling.  We do the rearangement if:
+    # calling.  We do the rearrangement if:
     # 1. The first parameter begins with a -
     #
     my($self,$order,@param) = @_;
@@ -79,13 +81,14 @@ sub rearrange {
 }
 
 1;
+__DATA__
+
+1;
 __END__
- 
-=pod
 
 =head1 NAME
 
-LibWeb::Class - A BASE CLASS FOR LIBWEB MODULES
+LibWeb::Class - A base class for libweb modules
 
 =head1 SUPPORTED PLATFORMS
 
@@ -122,20 +125,18 @@ None
 
 =head1 ABSTRACT
 
-This class contains common object-oriented methods inherited by all LibWeb
-modules.  It is intended to be ISA by LibWeb modules and extensions and
-not used by client codes outside LibWeb.
+This class contains common object-oriented methods inherited by all
+LibWeb modules.  It is intended to be ISA by LibWeb modules and
+extensions and not used by client codes outside LibWeb.
 
 The current version of LibWeb::Class is available at
 
    http://libweb.sourceforge.net
-   ftp://libweb.sourceforge/pub/libweb
 
-Several LibWeb applications (LEAPs) have be written, released and
-are available at
+Several LibWeb applications (LEAPs) have be written, released and are
+available at
 
    http://leaps.sourceforge.net
-   ftp://leaps.sourceforge.net/pub/leaps
 
 =head1 DESCRIPTION
 
@@ -147,10 +148,10 @@ are available at
 
 =back
 
-This is not really OO related but makes LibWeb's API look sexy.  This is stolen
-from CGI.pm and modified.  It allows smart rearrangement of parameters for named
-parameter calling.  This does the rearrangement if the first parameter begins
-with a `-'.  For example,
+This is not really OO related but makes LibWeb's API look sexy.  This
+is stolen from CGI.pm and modified.  It allows smart rearrangement of
+parameters for named parameter calling.  This does the rearrangement
+if the first parameter begins with a `-'.  For example,
 
   sub your_class_method {
 
