@@ -1,0 +1,16 @@
+01/06/2000 LibWeb-0.01
+----------------------
+- Add more methods in LibWeb::Themes::Default.
+
+- Add more methods in LibWeb::Database::Mysql.
+
+- Add some themes.
+
+- Fix LibWeb::CGI OO bugs.
+
+- Fix ``redirect'' security hole.
+
+- Re-program LibWeb::Core::send_mail() so that it supports NT.
+
+
+

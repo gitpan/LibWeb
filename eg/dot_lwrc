@@ -1,0 +1,122 @@
+# -*- perl -*-
+
+#=============================================================================
+# dot_lwrc -- a sample rc (config) file for LibWeb
+#
+# Copyright (C) 2000  Colin Kong
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#=============================================================================
+
+# Configuration for LibWeb.
+#
+# Adjust these fields to suit your site's needs accordingly.
+# New ones may be added.
+#
+# Note the trailing slash for all paths and url.
+#
+return {#DO NOT REMOVE THIS CURLY BRACKET.
+
+ #####################################################
+ # Security and encryption variables.                #
+ #####################################################
+ CLASSIC_EXPIRES => 'Thu, 01-Jan-1970 00:00:01 GMT', # DO NOT EDIT.
+ # PLEASE PLEASE change these variables periodically.
+ RAND_RANGE => 123456789,
+ MAC_KEY => '12345abcde',
+ CIPHER_KEY => '12345abcde',
+ DIGEST_KEY => '12345abcde',
+ CIPHER_ALGORITHM => 'Crypt::Blowfish',
+ DIGEST_ALGORITHM => 'Digest::SHA1',
+ CIPHER_FORMAT => 'HEX',
+ DIGEST_FORMAT => 'B64',
+ 
+ #####################################################
+ # Misc. server's variables.                         #
+ #####################################################
+ DEBUG => 0,
+ IS_MAIL_DEBUG_TO_ADMIN => 1,
+ DOC_ROOT => "$ENV{DOCUMENT_ROOT}/",    # DO NOT EDIT.
+ URL_ROOT => "http://$ENV{HTTP_HOST}/",	# DO NOT EDIT.
+ LIB_ROOT => '/home/bar/lib/',
+ COPYRIGHT => '/my_copyright.htm',
+ PRIVACY_POLICY => '/my_privacy_policy.htm',
+ TOS => '/my_terms.htm',
+ CSS => '/my_styles.css',
+ MAIL_PROGRAM => '/usr/sbin/sendmail -t -oi',
+ ADMIN_EMAIL => 'foo@you_domain.org',
+ CEO_EMAIL => 'foo@your_domain.org',
+ SITE_NAME => 'Your site name',
+ SITE_DESCRIPTION => 'Your_domain.org is a site for you to foo bar... ',
+ SITE_KEYWORDS => 'foo, bar',
+ SITE_YEAR => '1999, 2000',
+
+ #####################################################
+ # Users manager variables (LibWeb::Admin).          #
+ #####################################################
+ IS_NOTIFY_ADMIN_WHEN_ADDED_NEW_USER => 1,
+ IS_ALLOW_MULTI_REGISTRATION => 0,
+ MAX_LOGIN_ATTEMPT_ALLOWED => 5,  # This MUST be < loginIndicator.
+ LOGIN_INDICATOR => 9,
+ LOGIN_DURATION_ALLOWED => 14400, # 4 hours (since there are 3600 sec/hr)
+ 
+ #####################################################
+ # SQL database variables (LibWeb::Database/Admin).  # 
+ #####################################################
+ #DB_NAME => 'database_name',                        # Reserved constant.
+ DB_SOURCE => 'DBI:mysql:database_name',
+ DB_LOGIN => 'database_login',
+ DB_PASS => 'database_password',
+ DB_OPTIONS => {RaiseError => 1, AutoCommit => 1},
+ USER_PROFILE_TABLE => 'USER_PROFILE',
+ USER_PROFILE_TABLE_UID => 'UID',
+ USER_PROFILE_TABLE_NAME => 'NAME',
+ USER_PROFILE_TABLE_PASS => 'PASS',
+ USER_PROFILE_TABLE_EMAIL => 'EMAIL',
+ USER_LOG_TABLE => 'USER_LOG',
+ USER_LOG_TABLE_UID => 'UID',
+ USER_LOG_TABLE_IP => 'IP',
+ USER_LOG_TABLE_HOST => 'HOST',
+ USER_LOG_TABLE_LAST_LOGIN => 'LAST_LOGIN',
+ USER_LOG_TABLE_NUM_LOGIN_ATTEMPT => 'NUM_LOGIN_ATTEMPT',
+ 
+ ####################################################
+ # Site color, theme and pix location.              #
+ ####################################################
+ SITE_1ST_COLOR => '#0099CC',  	# Light blue.
+ SITE_2ND_COLOR => '#006699',  	# Blue.
+ SITE_3RD_COLOR => '#003366',  	# Deep blue.
+ SITE_4TH_COLOR => '#FF9900',  	# Orange.
+ SITE_BG_COLOR => '#FFFFFF',   	# White.
+ SITE_TXT_COLOR => '#000000',  	# Black.
+ SITE_LIQUID_COLOR1 => '#E6E6E6',   # Lighter Grey.
+ SITE_LIQUID_COLOR2 => '#C9C9C9',   # Light Grey.
+ SITE_LIQUID_COLOR3 => '#9C9C9C',   # Grey.
+ SITE_LIQUID_COLOR4 => '#6E6E6E',   # Dark Grey.
+ SITE_LIQUID_COLOR5 => '#000000',   # Black.
+ PIX_URL => '/img/',
+ SITE_LOGO => '/img/logo.png',
+ SITE_LOGO_BG => '/img/logo_bg.png',
+ 
+ #####################################################
+ # Site's common applications' url location.         #
+ #####################################################
+ LM_IN => '/cgi-bin/lm.cgi',
+ LM_OUT => '/cgi-bin/lm.cgi?.a=logout'
+ # DO NOT PUT A COMMA AFTER THE LAST ARRTIBUTE.
+
+};#DO NOT REMOVE THE CURLY BRACKET AND SEMI-COLON.
+
+1;
